@@ -1,0 +1,8 @@
+{
+  "name": "educx",
+  "version": "1.0.0",
+  "description": "EDUCX - Plateforme éducative avec Stripe",
+  "dependencies": {
+    "stripe": "^14.0.0"
+  }
+}
