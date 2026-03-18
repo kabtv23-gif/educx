@@ -3,175 +3,153 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EDUCX — Annales 2020-2026</title>
+<title>EDUCX — Base de Données Annales 2020-2026</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#07080f;--surface:#0f1120;--surface2:#171929;--border:rgba(255,255,255,0.08);--accent:#5b6ef8;--accent2:#f85b9e;--accent3:#5bf8c4;--gold:#f8c25b;--text:#e8eaf6;--muted:#6b7280;}
 *{margin:0;padding:0;box-sizing:border-box;}
-html{scroll-behavior:smooth;}
-body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:16px;line-height:1.6;overflow-x:hidden;}
-.blob{position:fixed;border-radius:50%;filter:blur(120px);pointer-events:none;z-index:0;opacity:0.1;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow-x:hidden;}
+.blob{position:fixed;border-radius:50%;filter:blur(120px);z-index:0;opacity:0.1;pointer-events:none;}
 .blob-1{width:500px;height:500px;background:var(--accent);top:-150px;left:-150px;}
-.blob-2{width:400px;height:400px;background:var(--accent2);bottom:-100px;right:-100px;}
 
 nav{position:fixed;top:0;left:0;right:0;z-index:1000;padding:0 32px;height:68px;display:flex;align-items:center;justify-content:space-between;background:rgba(7,8,15,0.88);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);}
-.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.5rem;background:linear-gradient(135deg,var(--accent),var(--accent3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-decoration:none;}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.5rem;background:linear-gradient(135deg,var(--accent),var(--accent3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-decoration:none;}
 
-.container{max-width:1100px;margin:0 auto;padding:100px 24px 60px;position:relative;z-index:1;}
+.container{max-width:1200px;margin:0 auto;padding:100px 24px 60px;position:relative;z-index:1;}
+.page-header{text-align:center;margin-bottom:40px;}
+.page-title{font-family:'Syne',sans-serif;font-size:2.5rem;font-weight:800;}
+.page-title span{color:var(--accent3);}
 
-/* HEADER */
-.page-header{text-align:center;margin-bottom:48px;}
-.page-title{font-family:'Syne',sans-serif;font-size:2.5rem;font-weight:800;margin-bottom:12px;}
-.page-title span{background:linear-gradient(135deg,var(--accent),var(--accent3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-
-/* FILTRES */
-.filters{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:36px;align-items:center;background:var(--surface);padding:20px;border-radius:20px;border:1px solid var(--border);}
-.filter-group{display:flex;gap:8px;}
-.fbtn{padding:8px 18px;border-radius:50px;border:1px solid var(--border);background:transparent;color:var(--muted);font-weight:600;cursor:pointer;transition:0.2s;font-size:0.85rem;}
+.filters{background:var(--surface);padding:20px;border-radius:20px;border:1px solid var(--border);margin-bottom:30px;display:flex;flex-direction:column;gap:15px;}
+.filter-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.fbtn{padding:8px 16px;border-radius:50px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:0.8rem;font-weight:600;}
 .fbtn.active{background:var(--accent);color:white;border-color:var(--accent);}
-.search-input{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:10px 16px;color:white;width:250px;outline:none;}
+.search-input{flex:1;background:var(--surface2);border:1px solid var(--border);padding:10px;border-radius:10px;color:white;outline:none;}
 
-/* GRID */
-.sujets-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px;}
-.sujet-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;overflow:hidden;transition:0.3s;}
-.sujet-card:hover{transform:translateY(-5px);border-color:var(--accent);}
-.sujet-top{padding:20px;}
-.bar-maths{height:4px;background:var(--accent);}
-.bar-physique{height:4px;background:var(--accent2);}
-.bar-chimie{height:4px;background:var(--accent3);}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:20px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:18px;overflow:hidden;transition:0.3s;display:flex;flex-direction:column;}
+.card:hover{transform:translateY(-5px);border-color:var(--accent);}
+.card-bar{height:4px;}
+.maths-bar{background:var(--accent);}
+.physique-bar{background:var(--accent2);}
+.chimie-bar{background:var(--accent3);}
 
-.stag{padding:3px 10px;border-radius:50px;font-size:0.65rem;font-weight:800;text-transform:uppercase;margin-right:5px;}
-.stag-bac{background:rgba(91,110,248,0.1);color:var(--accent);}
-.stag-brevet{background:rgba(248,91,158,0.1);color:var(--accent2);}
+.card-content{padding:20px;flex-grow:1;}
+.tag-row{margin-bottom:10px;}
+.tag{font-size:0.6rem;font-weight:800;padding:3px 8px;border-radius:4px;text-transform:uppercase;margin-right:5px;background:rgba(255,255,255,0.05);}
+.tag-year{color:var(--gold);border:1px solid rgba(248,194,91,0.2);}
 
-.sujet-title{font-family:'Syne',sans-serif;font-weight:800;font-size:1.1rem;margin:10px 0 5px;}
-.sujet-desc{color:var(--muted);font-size:0.85rem;margin-bottom:15px;}
+.card-title{font-family:'Syne',sans-serif;font-weight:800;font-size:1rem;margin-bottom:8px;}
+.preview-list{background:rgba(0,0,0,0.2);padding:12px;border-radius:10px;font-size:0.75rem;color:var(--muted);margin-bottom:15px;}
+.preview-list div{margin-bottom:4px;display:flex;gap:8px;}
+.q-num{color:var(--accent3);font-weight:bold;}
 
-.preview-box{background:var(--surface2);padding:15px;border-radius:12px;margin:0 20px 20px;}
-.preview-q{font-size:0.75rem;margin-bottom:5px;display:flex;gap:8px;}
-.q-num{color:var(--accent);font-weight:800;}
-
-.sujet-actions{padding:15px 20px;border-top:1px solid var(--border);display:flex;gap:10px;}
-.btn-pdf{flex:1;padding:10px;text-align:center;border-radius:10px;text-decoration:none;font-weight:700;font-size:0.8rem;transition:0.2s;}
-.btn-main{background:var(--accent);color:white;}
-.btn-corrige{background:rgba(91,248,196,0.1);color:var(--accent3);border:1px solid rgba(91,248,196,0.2);}
-
-@media(max-width:768px){.search-input{width:100%;}}
+.card-actions{padding:15px;display:flex;gap:10px;border-top:1px solid var(--border);}
+.btn{flex:1;padding:10px;text-align:center;border-radius:8px;text-decoration:none;font-weight:700;font-size:0.8rem;}
+.btn-primary{background:var(--accent);color:white;}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
 </style>
 </head>
 <body>
 <div class="blob blob-1"></div>
-<div class="blob blob-2"></div>
 
 <nav>
-  <a href="#" class="logo">EDUCX</a>
-  <div class="nav-right">
-    <a href="educx-ia-tuteur.html" style="background:var(--accent3);color:#000;padding:8px 16px;border-radius:50px;font-size:0.8rem;font-weight:800;text-decoration:none;">Lancer l'IA</a>
-  </div>
+    <a href="#" class="logo">EDUCX</a>
 </nav>
 
 <div class="container">
-  <div class="page-header">
-    <div class="page-title">Archives <span>2020 — 2026</span></div>
-    <p class="page-sub">Base de données centralisée : Labolycée & Sujet de Bac.</p>
-  </div>
-
-  <div class="filters">
-    <div class="filter-group">
-      <button class="fbtn active" onclick="filter('tout')">Tout</button>
-      <button class="fbtn" onclick="filter('maths')">📐 Maths</button>
-      <button class="fbtn" onclick="filter('physique')">⚡ Physique</button>
-      <button class="fbtn" onclick="filter('chimie')">🧪 Chimie</button>
+    <div class="page-header">
+        <h1 class="page-title">Annales <span>2020 — 2026</span></h1>
+        <p style="color:var(--muted)">Mathématiques, Physique & Chimie (Toutes zones)</p>
     </div>
-    <input class="search-input" id="searchInput" placeholder="Rechercher un chapitre..." oninput="search()">
-  </div>
 
-  <div id="sujetsGrid" class="sujets-grid"></div>
+    <div class="filters">
+        <div class="filter-row">
+            <button class="fbtn active" onclick="setMat('tout', this)">Toutes matières</button>
+            <button class="fbtn" onclick="setMat('maths', this)">📐 Maths</button>
+            <button class="fbtn" onclick="setMat('physique', this)">⚡ Physique</button>
+            <button class="fbtn" onclick="setMat('chimie', this)">🧪 Chimie</button>
+        </div>
+        <div class="filter-row">
+            <input type="text" class="search-input" id="search" placeholder="Filtrer par zone ou chapitre (ex: Amérique du Nord, Probabilités...)" onkeyup="render()">
+        </div>
+    </div>
+
+    <div class="grid" id="mainGrid"></div>
 </div>
 
 <script>
-const SUJETS = [
-  {
-    id: 1, mat: 'maths', type: 'bac', annee: 2026, zone: 'Métropole',
-    titre: 'Bac Maths 2026 — Spécimen',
-    desc: 'Préparation 2026 : Suites et fonctions convexes.',
-    questions: ['Suites récurrentes', 'Convexité et Logarithme', 'Probabilités conditionnelles'],
-    url: 'https://www.sujetdebac.fr/annales/mathematiques-terminale-s/'
-  },
-  {
-    id: 2, mat: 'physique', type: 'bac', annee: 2025, zone: 'Etranger',
-    titre: 'Physique 2025 — Centres Étrangers',
-    desc: 'Mouvement dans un champ de pesanteur et ondes.',
-    questions: ['Chute libre avec frottements', 'Effet Doppler', 'Circuit RC'],
-    url: 'https://labolycee.org/'
-  },
-  {
-    id: 3, mat: 'chimie', type: 'bac', annee: 2024, zone: 'Métropole',
-    titre: 'Chimie 2024 — France Métro',
-    desc: 'Cinétique et titrage conductimétrique.',
-    questions: ['Vitesse de réaction', 'Acide-Base', 'Estérification'],
-    url: 'https://labolycee.org/'
-  },
-  {
-    id: 4, mat: 'maths', type: 'brevet', annee: 2024, zone: 'Métropole',
-    titre: 'Brevet Maths 2024 — Officiel',
-    desc: 'Arithmétique, Thalès et Scratch.',
-    questions: ['PGCD', 'Trigonométrie', 'Algorithme'],
-    url: 'https://www.sujetdebac.fr/annales/brevet-mathematiques/'
-  },
-  {
-    id: 5, mat: 'physique', type: 'bac', annee: 2020, zone: 'Antilles',
-    titre: 'Physique 2020 — Archives',
-    desc: 'Analyse des mouvements et optique.',
-    questions: ['Kepler et Gravitation', 'Interférences', 'Thermodynamique'],
-    url: 'https://labolycee.org/'
-  }
+// Génération massive de données pour 2020-2026
+const zones = ["Métropole", "Amérique du Nord", "Asie-Pacifique", "Centres Étrangers", "Antilles-Guyane", "Polynésie"];
+const matieres = [
+    {id:'maths', n:'Mathématiques', base:'https://www.sujetdebac.fr/annales-generale/specialite-mathematiques/'},
+    {id:'physique', n:'Physique', base:'https://labolycee.org/annales-bac-physique-chimie-par-annee/'},
+    {id:'chimie', n:'Chimie', base:'https://labolycee.org/annales-bac-physique-chimie-par-annee/'}
 ];
 
-let currentFilter = 'tout';
+const SUJETS = [];
 
-function render(data) {
-  const grid = document.getElementById('sujetsGrid');
-  grid.innerHTML = data.map(s => `
-    <div class="sujet-card">
-      <div class="bar-${s.mat}"></div>
-      <div class="sujet-top">
-        <span class="stag stag-bac">${s.type.toUpperCase()}</span>
-        <span class="stag" style="background:rgba(255,255,255,0.05); color:var(--gold)">${s.annee}</span>
-        <div class="sujet-title">${s.titre}</div>
-        <div class="sujet-desc">${s.desc}</div>
-      </div>
-      <div class="preview-box">
-        ${s.questions.map((q, i) => `<div class="preview-q"><span class="q-num">${i+1}</span> ${q}</div>`).join('')}
-      </div>
-      <div class="sujet-actions">
-        <a href="${s.url}" target="_blank" class="btn-pdf btn-main">Accéder au Sujet</a>
-        <a href="${s.url}" target="_blank" class="btn-pdf btn-corrige">Corrigé</a>
-      </div>
-    </div>
-  `).join('');
+// Boucle pour peupler la base de données de 2020 à 2026
+for(let annee = 2026; annee >= 2020; annee--) {
+    matieres.forEach(m => {
+        zones.forEach(z => {
+            // Simulation de sujets (à remplacer par tes liens PDF précis si tu les as)
+            SUJETS.push({
+                annee: annee,
+                zone: z,
+                matiere: m.id,
+                matiereNom: m.n,
+                titre: `${m.n} — ${z} ${annee}`,
+                preview: annee >= 2025 ? ["Sujet Prédictif", "Dernière Réforme", "Entraînement"] : ["Exercice 1 : Analyse", "Exercice 2 : Spécialité", "Exercice 3 : QCM"],
+                urlSujet: m.id === 'maths' ? `${m.base}${annee}/` : `${m.base}#${annee}`,
+                urlCorrige: m.id === 'maths' ? `${m.base}${annee}/` : `${m.base}#${annee}`
+            });
+        });
+    });
 }
 
-function filter(mat) {
-  currentFilter = mat;
-  document.querySelectorAll('.fbtn').forEach(btn => {
-    btn.classList.toggle('active', btn.innerText.toLowerCase().includes(mat) || (mat === 'tout' && btn.innerText === 'Tout'));
-  });
-  search();
+let activeMat = 'tout';
+
+function setMat(m, btn) {
+    activeMat = m;
+    document.querySelectorAll('.fbtn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    render();
 }
 
-function search() {
-  const query = document.getElementById('searchInput').value.toLowerCase();
-  const filtered = SUJETS.filter(s => {
-    const matchMat = currentFilter === 'tout' || s.mat === currentFilter;
-    const matchText = s.titre.toLowerCase().includes(query) || s.desc.toLowerCase().includes(query);
-    return matchMat && matchText;
-  });
-  render(filtered);
+function render() {
+    const grid = document.getElementById('mainGrid');
+    const search = document.getElementById('search').value.toLowerCase();
+    
+    const filtered = SUJETS.filter(s => {
+        const mMatch = activeMat === 'tout' || s.matiere === activeMat;
+        const sMatch = s.titre.toLowerCase().includes(search) || s.zone.toLowerCase().includes(search);
+        return mMatch && sMatch;
+    });
+
+    grid.innerHTML = filtered.map(s => `
+        <div class="card">
+            <div class="card-bar ${s.matiere}-bar"></div>
+            <div class="card-content">
+                <div class="tag-row">
+                    <span class="tag tag-year">${s.annee}</span>
+                    <span class="tag">${s.zone}</span>
+                </div>
+                <div class="card-title">${s.titre}</div>
+                <div class="preview-list">
+                    ${s.preview.map((p, i) => `<div><span class="q-num">${i+1}</span> ${p}</div>`).join('')}
+                </div>
+            </div>
+            <div class="card-actions">
+                <a href="${s.urlSujet}" target="_blank" class="btn btn-primary">Sujet</a>
+                <a href="${s.urlCorrige}" target="_blank" class="btn btn-secondary">Corrigé</a>
+            </div>
+        </div>
+    `).join('');
 }
 
-// Lancement initial
-render(SUJETS);
+// Initialisation
+render();
 </script>
 </body>
 </html>
