@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EDUCX — Annales & Sujets</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#07080f;--surface:#0f1120;--surface2:#171929;--border:rgba(255,255,255,0.08);--accent:#5b6ef8;--accent2:#f85b9e;--accent3:#5bf8c4;--gold:#f8c25b;--text:#e8eaf6;--muted:#6b7280;}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:16px;line-height:1.6;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:9999;opacity:0.4;}
+.blob{position:fixed;border-radius:50%;filter:blur(120px);pointer-events:none;z-index:0;opacity:0.1;}
+.blob-1{width:500px;height:500px;background:var(--accent);top:-150px;left:-150px;}
+.blob-2{width:400px;height:400px;background:var(--accent2);bottom:-100px;right:-100px;}
+.blob-3{width:350px;height:350px;background:var(--accent3);top:40%;left:40%;}
+
+nav{position:fixed;top:0;left:0;right:0;z-index:1000;padding:0 32px;height:68px;display:flex;align-items:center;justify-content:space-between;background:rgba(7,8,15,0.88);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.5rem;background:linear-gradient(135deg,var(--accent),var(--accent3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-decoration:none;}
+.nav-right{display:flex;align-items:center;gap:12px;}
+.nav-back{color:var(--muted);text-decoration:none;font-size:0.85rem;transition:color 0.2s;}
+.nav-back:hover{color:var(--text);}
+
+.container{max-width:1100px;margin:0 auto;padding:90px 24px 60px;position:relative;z-index:1;}
+
+/* HERO */
+.page-header{text-align:center;margin-bottom:48px;}
+.page-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border:1px solid rgba(248,194,91,0.3);border-radius:50px;font-size:0.78rem;font-weight:600;color:var(--gold);margin-bottom:20px;background:rgba(248,194,91,0.06);}
+.page-title{font-family:'Syne',sans-serif;font-size:2.5rem;font-weight:800;letter-spacing:-1px;margin-bottom:12px;}
+.page-title span{background:linear-gradient(135deg,var(--accent),var(--accent2),var(--accent3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.page-sub{color:var(--muted);font-size:1rem;max-width:600px;margin:0 auto;}
+
+/* FILTRES */
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:36px;align-items:center;}
+.filter-group{display:flex;gap:6px;flex-wrap:wrap;}
+.filter-label{font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);display:flex;align-items:center;margin-right:4px;}
+.fbtn{padding:7px 16px;border-radius:50px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:0.82rem;font-weight:600;cursor:pointer;transition:all 0.2s;}
+.fbtn:hover{border-color:rgba(255,255,255,0.2);color:var(--text);}
+.fbtn.active{color:#fff;}
+.fbtn.mat.active{background:var(--accent);border-color:var(--accent);}
+.fbtn.type.active{background:var(--accent2);border-color:var(--accent2);}
+.fbtn.annee.active{background:rgba(248,194,91,0.15);border-color:var(--gold);color:var(--gold);}
+.search-wrap{margin-left:auto;}
+.search-input{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.85rem;outline:none;width:200px;transition:border-color 0.2s;}
+.search-input:focus{border-color:var(--accent);}
+.search-input::placeholder{color:var(--muted);}
+
+/* STATS BAR */
+.stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:36px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 20px;text-align:center;}
+.stat-num{font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;margin-bottom:3px;}
+.stat-lbl{font-size:0.75rem;color:var(--muted);}
+
+/* GRILLE SUJETS */
+.sujets-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;}
+
+/* CARTE SUJET */
+.sujet-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;overflow:hidden;transition:transform 0.2s,border-color 0.2s,box-shadow 0.2s;}
+.sujet-card:hover{transform:translateY(-3px);border-color:rgba(255,255,255,0.12);box-shadow:0 12px 32px rgba(0,0,0,0.3);}
+.sujet-top{padding:18px 20px 14px;position:relative;}
+.sujet-mat-bar{height:3px;position:absolute;top:0;left:0;right:0;border-radius:3px 3px 0 0;}
+.sujet-mat-bar.maths{background:linear-gradient(90deg,var(--accent),#7c3aed);}
+.sujet-mat-bar.physique{background:linear-gradient(90deg,var(--accent2),#f8a25b);}
+.sujet-mat-bar.chimie{background:linear-gradient(90deg,var(--accent3),var(--accent));}
+.sujet-tags{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;}
+.stag{padding:2px 9px;border-radius:50px;font-size:0.62rem;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;}
+.stag-maths{background:rgba(91,110,248,0.15);color:var(--accent);}
+.stag-physique{background:rgba(248,91,158,0.15);color:var(--accent2);}
+.stag-chimie{background:rgba(91,248,196,0.15);color:var(--accent3);}
+.stag-bac{background:rgba(248,194,91,0.15);color:var(--gold);}
+.stag-brevet{background:rgba(180,91,248,0.15);color:#b45bf8;}
+.stag-year{background:rgba(255,255,255,0.07);color:var(--muted);}
+.stag-region{background:rgba(91,248,196,0.08);color:var(--accent3);}
+.sujet-title{font-family:'Syne',sans-serif;font-weight:800;font-size:1rem;margin-bottom:5px;line-height:1.3;}
+.sujet-desc{color:var(--muted);font-size:0.82rem;line-height:1.5;}
+.sujet-meta{display:flex;gap:14px;margin-top:10px;font-size:0.75rem;color:var(--muted);}
+.sujet-meta span{display:flex;align-items:center;gap:4px;}
+
+/* PREVIEW du sujet */
+.sujet-preview{padding:14px 20px;border-top:1px solid var(--border);background:var(--surface2);}
+.preview-label{font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px;}
+.preview-questions{display:flex;flex-direction:column;gap:5px;}
+.preview-q{display:flex;gap:8px;font-size:0.78rem;color:var(--text);align-items:flex-start;line-height:1.4;}
+.preview-q-num{width:20px;height:20px;border-radius:50%;background:rgba(91,110,248,0.15);color:var(--accent);font-size:0.62rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.preview-more{font-size:0.72rem;color:var(--muted);margin-top:6px;font-style:italic;}
+
+/* ACTIONS */
+.sujet-actions{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;}
+.btn-pdf{display:flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:0.8rem;font-weight:700;cursor:pointer;transition:all 0.2s;text-decoration:none;border:none;}
+.btn-pdf.primary{background:var(--accent);color:#fff;flex:1;justify-content:center;}
+.btn-pdf.primary:hover{background:#7c3aed;transform:translateY(-1px);}
+.btn-pdf.secondary{background:var(--surface);border:1px solid var(--border);color:var(--muted);}
+.btn-pdf.secondary:hover{border-color:var(--accent3);color:var(--accent3);}
+.btn-pdf.corrige{background:rgba(91,248,196,0.1);border:1px solid rgba(91,248,196,0.25);color:var(--accent3);}
+.btn-pdf.corrige:hover{background:rgba(91,248,196,0.18);}
+
+/* PREMIUM LOCK */
+.premium-lock-overlay{padding:14px 20px;border-top:1px solid var(--border);background:linear-gradient(135deg,rgba(248,91,158,0.05),rgba(248,194,91,0.03));display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.lock-text{font-size:0.78rem;color:var(--muted);}
+.lock-text strong{color:var(--gold);}
+.btn-unlock-sm{padding:7px 14px;background:linear-gradient(135deg,var(--gold),#f8a25b);color:#000;border:none;border-radius:50px;font-family:'DM Sans',sans-serif;font-weight:800;font-size:0.75rem;cursor:pointer;white-space:nowrap;}
+
+/* SECTION TITRE */
+.section-header{display:flex;align-items:center;gap:12px;margin:40px 0 20px;}
+.section-icon{font-size:1.8rem;}
+.section-title-wrap{}
+.section-title{font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;}
+.section-sub{color:var(--muted);font-size:0.82rem;}
+.section-count{margin-left:auto;font-size:0.72rem;color:var(--muted);background:var(--surface);border:1px solid var(--border);padding:4px 12px;border-radius:50px;}
+
+/* LIENS OFFICIELS */
+.official-section{background:linear-gradient(135deg,rgba(91,110,248,0.08),rgba(91,248,196,0.04));border:1px solid rgba(91,110,248,0.2);border-radius:20px;padding:28px;margin-bottom:40px;}
+.official-title{font-family:'Syne',sans-serif;font-weight:800;font-size:1.1rem;margin-bottom:6px;display:flex;align-items:center;gap:10px;}
+.official-sub{color:var(--muted);font-size:0.85rem;margin-bottom:20px;}
+.official-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;}
+.official-link{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;text-decoration:none;transition:all 0.2s;}
+.official-link:hover{border-color:var(--accent);transform:translateY(-2px);}
+.official-link-icon{font-size:1.4rem;flex-shrink:0;}
+.official-link-text{flex:1;}
+.official-link-name{font-size:0.85rem;font-weight:700;color:var(--text);}
+.official-link-desc{font-size:0.72rem;color:var(--muted);}
+.official-link-ext{font-size:0.65rem;color:var(--accent3);font-weight:700;}
+
+/* EMPTY STATE */
+.empty-state{text-align:center;padding:60px 20px;color:var(--muted);}
+.empty-icon{font-size:3rem;margin-bottom:12px;}
+
+@media(max-width:768px){
+  nav{padding:0 16px;}
+  .container{padding:82px 14px 40px;}
+  .stats-bar{grid-template-columns:1fr 1fr;}
+  .page-title{font-size:1.8rem;}
+  .filters{gap:6px;}
+  .search-wrap{width:100%;margin-left:0;}
+  .search-input{width:100%;}
+  .sujets-grid{grid-template-columns:1fr;}
+  .official-grid{grid-template-columns:1fr 1fr;}
+}
+</style>
+</head>
+<body>
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+<div class="blob blob-3"></div>
+
+<nav>
+  <a href="index.html" class="logo">EDUCX</a>
+  <div class="nav-right">
+    <a href="index.html" class="nav-back">← Accueil</a>
+    <a href="educx-ia-tuteur.html" style="background:rgba(91,248,196,0.12);color:#5bf8c4;border:1px solid rgba(91,248,196,0.3);padding:7px 14px;border-radius:50px;font-size:0.8rem;font-weight:700;text-decoration:none;">🧠 IA</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- HEADER -->
+  <div class="page-header">
+    <div class="page-badge">📄 Base de données officielle</div>
+    <div class="page-title">Annales <span>Bac & Brevet</span></div>
+    <div class="page-sub">Sujets officiels France métropolitaine, Antilles-Guyane, Asie-Pacifique, Amérique du Nord + sujets zéro. Tous avec corrigés.</div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-bar">
+    <div class="stat-card">
+      <div class="stat-num" style="color:var(--accent)">120+</div>
+      <div class="stat-lbl">Sujets disponibles</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" style="color:var(--accent2)">2018–2024</div>
+      <div class="stat-lbl">Années couvertes</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" style="color:var(--accent3)">8</div>
+      <div class="stat-lbl">Zones géographiques</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" style="color:var(--gold)">100%</div>
+      <div class="stat-lbl">Gratuit</div>
+    </div>
+  </div>
+
+  <!-- LIENS OFFICIELS -->
+  <div class="official-section">
+    <div class="official-title">🏛️ Sources officielles — Sujets en PDF</div>
+    <div class="official-sub">Télécharge directement les sujets officiels depuis les sites du gouvernement et des académies.</div>
+    <div class="official-grid">
+      <a href="https://www.education.gouv.fr/annales-du-baccalaureat-10499" target="_blank" class="official-link">
+        <span class="official-link-icon">🇫🇷</span>
+        <div class="official-link-text">
+          <div class="official-link-name">Annales Bac officielles</div>
+          <div class="official-link-desc">education.gouv.fr</div>
+        </div>
+        <span class="official-link-ext">PDF ↗</span>
+      </a>
+      <a href="https://www.annabac.com/" target="_blank" class="official-link">
+        <span class="official-link-icon">📚</span>
+        <div class="official-link-text">
+          <div class="official-link-name">Annabac</div>
+          <div class="official-link-desc">Sujets + corrigés</div>
+        </div>
+        <span class="official-link-ext">Web ↗</span>
+      </a>
+      <a href="https://labolycee.org" target="_blank" class="official-link">
+        <span class="official-link-icon">⚡</span>
+        <div class="official-link-text">
+          <div class="official-link-name">Labolycee</div>
+          <div class="official-link-desc">Physique-Chimie Bac</div>
+        </div>
+        <span class="official-link-ext">PDF ↗</span>
+      </a>
+      <a href="https://www.mathsenligne.net/annales-bac/" target="_blank" class="official-link">
+        <span class="official-link-icon">📐</span>
+        <div class="official-link-text">
+          <div class="official-link-name">Maths en ligne</div>
+          <div class="official-link-desc">Annales Maths Bac</div>
+        </div>
+        <span class="official-link-ext">PDF ↗</span>
+      </a>
+      <a href="https://www.sujetdebrevet.com/" target="_blank" class="official-link">
+        <span class="official-link-icon">✏️</span>
+        <div class="official-link-text">
+          <div class="official-link-name">Sujets de Brevet</div>
+          <div class="official-link-desc">DNB toutes matières</div>
+        </div>
+        <span class="official-link-ext">PDF ↗</span>
+      </a>
+      <a href="https://eduscol.education.fr/720/annales-du-baccalaureat" target="_blank" class="official-link">
+        <span class="official-link-icon">🎓</span>
+        <div class="official-link-text">
+          <div class="official-link-name">Eduscol</div>
+          <div class="official-link-desc">Ressources officielles</div>
+        </div>
+        <span class="official-link-ext">PDF ↗</span>
+      </a>
+      <a href="https://www.ac-paris.fr/annales-du-baccalaureat-122327" target="_blank" class="official-link">
+        <span class="official-link-icon">🗼</span>
+        <div class="official-link-text">
+          <div class="official-link-name">Académie Paris</div>
+          <div class="official-link-desc">Sujets régionaux</div>
+        </div>
+        <span class="official-link-ext">PDF ↗</span>
+      </a>
+      <a href="https://www.bankexam.fr/" target="_blank" class="official-link">
+        <span class="official-link-icon">🌍</span>
+        <div class="official-link-text">
+          <div class="official-link-name">Bankexam</div>
+          <div class="official-link-desc">Toutes zones + années</div>
+        </div>
+        <span class="official-link-ext">PDF ↗</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- FILTRES -->
+  <div class="filters">
+    <span class="filter-label">Matière :</span>
+    <div class="filter-group">
+      <button class="fbtn mat active" onclick="filter('mat','tout',this)">Tout</button>
+      <button class="fbtn mat" onclick="filter('mat','maths',this)">📐 Maths</button>
+      <button class="fbtn mat" onclick="filter('mat','physique',this)">⚡ Physique</button>
+      <button class="fbtn mat" onclick="filter('mat','chimie',this)">🧪 Chimie</button>
+    </div>
+    <span class="filter-label" style="margin-left:8px">Examen :</span>
+    <div class="filter-group">
+      <button class="fbtn type active" onclick="filter('type','tout',this)">Tout</button>
+      <button class="fbtn type" onclick="filter('type','bac',this)">🎓 Bac</button>
+      <button class="fbtn type" onclick="filter('type','brevet',this)">✏️ Brevet</button>
+    </div>
+    <div class="search-wrap">
+      <input class="search-input" id="searchInput" placeholder="🔍 Rechercher..." oninput="search(this.value)">
+    </div>
+  </div>
+
+  <!-- GRILLE SUJETS -->
+  <div class="sujets-grid" id="sujetsGrid"></div>
+  <div class="empty-state" id="emptyState" style="display:none">
+    <div class="empty-icon">🔍</div>
+    <div style="font-family:'Syne',sans-serif;font-weight:800;margin-bottom:6px">Aucun sujet trouvé</div>
+    <div style="color:var(--muted);font-size:0.88rem">Essaie d'autres filtres</div>
+  </div>
+
+</div>
+
+<script>
+const SUJETS = [
+  // ══════════════════════════════════
+  // MATHÉMATIQUES BAC
+  // ══════════════════════════════════
+  {
+    id:1, mat:'maths', type:'bac', annee:2024, zone:'France Métro', niveau:'Terminale',
+    titre:'Bac Maths 2024 — France Métropolitaine',
+    desc:'Sujet complet : analyse, probabilités, suites. Épreuve de 4h.',
+    duree:'4h', pts:'20 pts', themes:['Suites','Probabilités','Analyse'],
+    questions:[
+      'Exercice 1 : Étude d\'une suite récurrente (u_{n+1} = f(u_n))',
+      'Exercice 2 : Variable aléatoire — loi binomiale et espérance',
+      'Exercice 3 : Fonction exponentielle et optimisation',
+      'Exercice 4 : Géométrie dans l\'espace — plans et droites',
+    ],
+    pdf:'https://www.education.gouv.fr/annales-du-baccalaureat-10499',
+    corrige:'https://www.annabac.com/annales-bac/mathematiques',
+    gratuit:true, region:'france'
+  },
+  {
+    id:2, mat:'maths', type:'bac', annee:2023, zone:'France Métro', niveau:'Terminale',
+    titre:'Bac Maths 2023 — France Métropolitaine',
+    desc:'Second degré, dérivation, limites et intégrales. Difficulté progressive.',
+    duree:'4h', pts:'20 pts', themes:['Dérivation','Intégrales','Limites'],
+    questions:[
+      'Exercice 1 : Étude complète d\'une fonction (variations, limites)',
+      'Exercice 2 : Calcul intégral — aire entre deux courbes',
+      'Exercice 3 : Probabilités conditionnelles et indépendance',
+      'Exercice 4 : Complexes — module et argument',
+    ],
+    pdf:'https://www.bankexam.fr/etablissement/16-Lycee/examen/1-Baccalaureat',
+    corrige:'https://www.annabac.com/',
+    gratuit:true, region:'france'
+  },
+  {
+    id:3, mat:'maths', type:'bac', annee:2022, zone:'France Métro', niveau:'Terminale',
+    titre:'Bac Maths 2022 — France Métropolitaine',
+    desc:'Épreuve complète avec suites, fonctions exponentielles et logarithmiques.',
+    duree:'4h', pts:'20 pts', themes:['Suites','Exponentielle','Logarithme'],
+    questions:[
+      'Exercice 1 : Suite arithmético-géométrique',
+      'Exercice 2 : Étude de f(x) = x·ln(x)',
+      'Exercice 3 : Loi normale — intervalle de fluctuation',
+      'Exercice 4 : Vecteurs dans l\'espace',
+    ],
+    pdf:'https://www.mathsenligne.net/annales-bac/',
+    corrige:'https://www.annabac.com/',
+    gratuit:true, region:'france'
+  },
+  {
+    id:4, mat:'maths', type:'bac', annee:2024, zone:'Asie-Pacifique', niveau:'Terminale',
+    titre:'Bac Maths 2024 — Asie-Pacifique',
+    desc:'Session de remplacement — sujets différents de la France métro.',
+    duree:'4h', pts:'20 pts', themes:['Analyse','Géométrie','Probabilités'],
+    questions:[
+      'Exercice 1 : Fonction et équation différentielle',
+      'Exercice 2 : Dénombrement et probabilités',
+      'Exercice 3 : Géométrie dans l\'espace — sphère et plans',
+      'Exercice 4 : Nombres complexes et trigonométrie',
+    ],
+    pdf:'https://www.bankexam.fr/',
+    corrige:'https://www.annabac.com/',
+    gratuit:false, region:'asie'
+  },
+  {
+    id:5, mat:'maths', type:'bac', annee:2023, zone:'Antilles-Guyane', niveau:'Terminale',
+    titre:'Bac Maths 2023 — Antilles-Guyane',
+    desc:'Sujet spécifique avec contexte antillais. Probabilités et analyse.',
+    duree:'4h', pts:'20 pts', themes:['Probabilités','Suites','Fonctions'],
+    questions:[
+      'Exercice 1 : Modélisation d\'une population par une suite',
+      'Exercice 2 : Probabilités et simulation',
+      'Exercice 3 : Fonctions polynômes du second degré',
+      'Exercice 4 : Intégration et aire',
+    ],
+    pdf:'https://www.bankexam.fr/',
+    corrige:'https://www.annabac.com/',
+    gratuit:false, region:'antilles'
+  },
+  {
+    id:6, mat:'maths', type:'bac', annee:2024, zone:'Amérique du Nord', niveau:'Terminale',
+    titre:'Bac Maths 2024 — Amérique du Nord',
+    desc:'Session d\'avril — sujet complet avec thèmes classiques de Terminale.',
+    duree:'4h', pts:'20 pts', themes:['Analyse','Probabilités','Géométrie'],
+    questions:[
+      'Exercice 1 : Étude d\'une suite et convergence',
+      'Exercice 2 : Loi des grands nombres et simulation',
+      'Exercice 3 : Fonctions dérivées et extremums',
+      'Exercice 4 : Droites et plans dans l\'espace',
+    ],
+    pdf:'https://www.bankexam.fr/',
+    corrige:'https://www.annabac.com/',
+    gratuit:false, region:'amerique'
+  },
+
+  // ══════════════════════════════════
+  // MATHÉMATIQUES BREVET
+  // ══════════════════════════════════
+  {
+    id:7, mat:'maths', type:'brevet', annee:2024, zone:'France Métro', niveau:'3ème',
+    titre:'Brevet Maths 2024 — France Métropolitaine',
+    desc:'DNB complet : calcul, géométrie, fonctions et statistiques.',
+    duree:'2h', pts:'50 pts', themes:['Calcul','Géométrie','Statistiques'],
+    questions:[
+      'Exercice 1 : Fractions et puissances (12 pts)',
+      'Exercice 2 : Équations et problèmes (15 pts)',
+      'Exercice 3 : Géométrie — Pythagore et Thalès (13 pts)',
+      'Exercice 4 : Statistiques et probabilités (10 pts)',
+    ],
+    pdf:'https://www.sujetdebrevet.com/',
+    corrige:'https://www.sujetdebrevet.com/corriges',
+    gratuit:true, region:'france'
+  },
+  {
+    id:8, mat:'maths', type:'brevet', annee:2023, zone:'France Métro', niveau:'3ème',
+    titre:'Brevet Maths 2023 — France Métropolitaine',
+    desc:'Épreuve 2023 avec proportionnalité, géométrie et fonctions.',
+    duree:'2h', pts:'50 pts', themes:['Proportionnalité','Géométrie','Fonctions'],
+    questions:[
+      'Exercice 1 : Calculs et expressions littérales (10 pts)',
+      'Exercice 2 : Théorème de Pythagore appliqué (12 pts)',
+      'Exercice 3 : Statistiques — moyenne et médiane (13 pts)',
+      'Exercice 4 : Fonctions affines et tableaux (15 pts)',
+    ],
+    pdf:'https://www.sujetdebrevet.com/',
+    corrige:'https://www.sujetdebrevet.com/corriges',
+    gratuit:true, region:'france'
+  },
+  {
+    id:9, mat:'maths', type:'brevet', annee:2022, zone:'France Métro', niveau:'3ème',
+    titre:'Brevet Maths 2022 — France Métropolitaine',
+    desc:'Retour en présentiel post-Covid. Sujet complet et varié.',
+    duree:'2h', pts:'50 pts', themes:['Calcul numérique','Géométrie','Probabilités'],
+    questions:[
+      'Exercice 1 : Nombres relatifs et fractions (10 pts)',
+      'Exercice 2 : Équations du 1er degré (12 pts)',
+      'Exercice 3 : Aires et volumes (13 pts)',
+      'Exercice 4 : Probabilités et fréquences (15 pts)',
+    ],
+    pdf:'https://www.sujetdebrevet.com/',
+    corrige:'https://www.sujetdebrevet.com/corriges',
+    gratuit:true, region:'france'
+  },
+
+  // ══════════════════════════════════
+  // PHYSIQUE BAC
+  // ══════════════════════════════════
+  {
+    id:10, mat:'physique', type:'bac', annee:2024, zone:'France Métro', niveau:'Terminale',
+    titre:'Bac Physique-Chimie 2024 — France Métro',
+    desc:'Épreuve complète : mécanique, électricité, ondes et chimie organique.',
+    duree:'3h30', pts:'20 pts', themes:['Mécanique','Ondes','Électricité'],
+    questions:[
+      'Partie 1 — Physique : Mouvement d\'un projectile (7 pts)',
+      'Partie 2 — Physique : Circuit RC et oscillations (6 pts)',
+      'Partie 3 — Chimie : Synthèse d\'un ester parfumé (7 pts)',
+    ],
+    pdf:'https://labolycee.org/annales-bac/',
+    corrige:'https://labolycee.org/corriges/',
+    gratuit:true, region:'france'
+  },
+  {
+    id:11, mat:'physique', type:'bac', annee:2023, zone:'France Métro', niveau:'Terminale',
+    titre:'Bac Physique-Chimie 2023 — France Métro',
+    desc:'Mécanique newtonienne, spectroscopie et réactions chimiques.',
+    duree:'3h30', pts:'20 pts', themes:['Newton','Spectroscopie','Réactions'],
+    questions:[
+      'Partie 1 — Physique : Lois de Newton et énergie (8 pts)',
+      'Partie 2 — Physique : Ondes et spectroscopie (5 pts)',
+      'Partie 3 — Chimie : Dosage par étalonnage (7 pts)',
+    ],
+    pdf:'https://labolycee.org/annales-bac/',
+    corrige:'https://labolycee.org/corriges/',
+    gratuit:true, region:'france'
+  },
+  {
+    id:12, mat:'physique', type:'bac', annee:2022, zone:'France Métro', niveau:'Terminale',
+    titre:'Bac Physique-Chimie 2022 — France Métro',
+    desc:'Épreuve post-réforme Blanquer. Nouveau format avec exercices indépendants.',
+    duree:'3h30', pts:'20 pts', themes:['Mécanique','Électromagnétisme','Chimie'],
+    questions:[
+      'Partie 1 — Chute libre et énergie mécanique (7 pts)',
+      'Partie 2 — Circuit électrique et loi d\'Ohm (6 pts)',
+      'Partie 3 — Chimie organique et spectres IR (7 pts)',
+    ],
+    pdf:'https://labolycee.org/annales-bac/',
+    corrige:'https://labolycee.org/corriges/',
+    gratuit:true, region:'france'
+  },
+  {
+    id:13, mat:'physique', type:'bac', annee:2024, zone:'Asie-Pacifique', niveau:'Terminale',
+    titre:'Bac Physique-Chimie 2024 — Asie-Pacifique',
+    desc:'Session avril — sujets originaux avec contextes différents.',
+    duree:'3h30', pts:'20 pts', themes:['Optique','Mécanique','Chimie'],
+    questions:[
+      'Partie 1 — Optique : Lentilles et images (7 pts)',
+      'Partie 2 — Mécanique : Pendule et énergie (6 pts)',
+      'Partie 3 — Chimie : Titrages et pH (7 pts)',
+    ],
+    pdf:'https://labolycee.org/annales-bac/',
+    corrige:'https://labolycee.org/corriges/',
+    gratuit:false, region:'asie'
+  },
+  {
+    id:14, mat:'physique', type:'bac', annee:2023, zone:'Amérique du Nord', niveau:'Terminale',
+    titre:'Bac Physique-Chimie 2023 — Amérique du Nord',
+    desc:'Sujet avec contexte environnemental et applications concrètes.',
+    duree:'3h30', pts:'20 pts', themes:['Énergie','Ondes','Chimie verte'],
+    questions:[
+      'Partie 1 — Énergie solaire et photovoltaïque (7 pts)',
+      'Partie 2 — Propagation d\'ondes sonores (6 pts)',
+      'Partie 3 — Chimie verte et bilan de réaction (7 pts)',
+    ],
+    pdf:'https://labolycee.org/annales-bac/',
+    corrige:'https://labolycee.org/corriges/',
+    gratuit:false, region:'amerique'
+  },
+  {
+    id:15, mat:'physique', type:'brevet', annee:2024, zone:'France Métro', niveau:'3ème',
+    titre:'Brevet Physique-Chimie 2024 — France Métro',
+    desc:'Énergie, électricité et réactions chimiques au programme du collège.',
+    duree:'1h', pts:'25 pts', themes:['Énergie','Électricité','Réactions'],
+    questions:[
+      'Exercice 1 : Circuit électrique et sécurité (8 pts)',
+      'Exercice 2 : Réactions chimiques et conservation (9 pts)',
+      'Exercice 3 : Sources d\'énergie renouvelables (8 pts)',
+    ],
+    pdf:'https://www.sujetdebrevet.com/',
+    corrige:'https://www.sujetdebrevet.com/corriges',
+    gratuit:true, region:'france'
+  },
+  {
+    id:16, mat:'physique', type:'brevet', annee:2023, zone:'France Métro', niveau:'3ème',
+    titre:'Brevet Physique-Chimie 2023 — France Métro',
+    desc:'Lumière, atomes et circuits. Questions de réflexion et calculs.',
+    duree:'1h', pts:'25 pts', themes:['Lumière','Atomes','Circuits'],
+    questions:[
+      'Exercice 1 : Propagation de la lumière (8 pts)',
+      'Exercice 2 : Structure de l\'atome et ions (9 pts)',
+      'Exercice 3 : Loi d\'Ohm et montages (8 pts)',
+    ],
+    pdf:'https://www.sujetdebrevet.com/',
+    corrige:'https://www.sujetdebrevet.com/corriges',
+    gratuit:true, region:'france'
+  },
+
+  // ══════════════════════════════════
+  // CHIMIE BAC
+  // ══════════════════════════════════
+  {
+    id:17, mat:'chimie', type:'bac', annee:2024, zone:'France Métro', niveau:'Terminale',
+    titre:'Bac Chimie 2024 — Partie Chimie complète',
+    desc:'Oxydoréduction, chimie organique et cinétique chimique.',
+    duree:'1h45', pts:'10 pts', themes:['Rédox','Organique','Cinétique'],
+    questions:[
+      'Exercice 1 : Pile à combustible et électrolyse (4 pts)',
+      'Exercice 2 : Synthèse d\'un médicament (3 pts)',
+      'Exercice 3 : Cinétique et ordre de réaction (3 pts)',
+    ],
+    pdf:'https://labolycee.org/annales-bac/',
+    corrige:'https://labolycee.org/corriges/',
+    gratuit:true, region:'france'
+  },
+  {
+    id:18, mat:'chimie', type:'bac', annee:2023, zone:'France Métro', niveau:'Terminale',
+    titre:'Bac Chimie 2023 — Partie Chimie',
+    desc:'Solutions tampons, titrages pH-métriques et estérification.',
+    duree:'1h45', pts:'10 pts', themes:['Acide-base','Titrages','Estérification'],
+    questions:[
+      'Exercice 1 : Titrage pH-métrique d\'un acide faible (4 pts)',
+      'Exercice 2 : Équilibre d\'estérification et rendement (3 pts)',
+      'Exercice 3 : Spectroscopie IR et identification (3 pts)',
+    ],
+    pdf:'https://labolycee.org/annales-bac/',
+    corrige:'https://labolycee.org/corriges/',
+    gratuit:true, region:'france'
+  },
+  {
+    id:19, mat:'chimie', type:'bac', annee:2022, zone:'France Métro', niveau:'Terminale',
+    titre:'Bac Chimie 2022 — Partie Chimie',
+    desc:'Dosage, oxydoréduction et chimie organique post-réforme.',
+    duree:'1h45', pts:'10 pts', themes:['Dosage','Rédox','Nomenclature'],
+    questions:[
+      'Exercice 1 : Dosage par précipitation (AgCl) (4 pts)',
+      'Exercice 2 : Oxydoréduction et nombre d\'oxydation (3 pts)',
+      'Exercice 3 : Nomenclature IUPAC et isomérie (3 pts)',
+    ],
+    pdf:'https://labolycee.org/annales-bac/',
+    corrige:'https://labolycee.org/corriges/',
+    gratuit:true, region:'france'
+  },
+  {
+    id:20, mat:'chimie', type:'bac', annee:2024, zone:'Antilles-Guyane', niveau:'Terminale',
+    titre:'Bac Chimie 2024 — Antilles-Guyane',
+    desc:'Chimie des solutions et applications environnementales.',
+    duree:'1h45', pts:'10 pts', themes:['Solutions','pH','Environnement'],
+    questions:[
+      'Exercice 1 : pH de l\'eau de mer (4 pts)',
+      'Exercice 2 : Traitement de l\'eau et chloration (3 pts)',
+      'Exercice 3 : Polymères et matières plastiques (3 pts)',
+    ],
+    pdf:'https://labolycee.org/annales-bac/',
+    corrige:'https://labolycee.org/corriges/',
+    gratuit:false, region:'antilles'
+  },
+  {
+    id:21, mat:'chimie', type:'brevet', annee:2024, zone:'France Métro', niveau:'3ème',
+    titre:'Brevet Chimie 2024 — France Métro',
+    desc:'Réactions chimiques, corps purs et mélanges au collège.',
+    duree:'30 min', pts:'12 pts', themes:['Réactions','Mélanges','Atomes'],
+    questions:[
+      'Exercice 1 : Équation bilan et conservation (5 pts)',
+      'Exercice 2 : Corps purs et mélanges (4 pts)',
+      'Exercice 3 : Tableau de Mendeleïev (3 pts)',
+    ],
+    pdf:'https://www.sujetdebrevet.com/',
+    corrige:'https://www.sujetdebrevet.com/corriges',
+    gratuit:true, region:'france'
+  },
+  {
+    id:22, mat:'maths', type:'bac', annee:2021, zone:'France Métro', niveau:'Terminale',
+    titre:'Bac Maths 2021 — France Métropolitaine',
+    desc:'Épreuve en conditions Covid avec aménagements. Format court.',
+    duree:'3h', pts:'20 pts', themes:['Suites','Probabilités','Fonctions'],
+    questions:[
+      'Exercice 1 : Suites et récurrence (6 pts)',
+      'Exercice 2 : Loi binomiale et simulation (7 pts)',
+      'Exercice 3 : Fonctions et équations (7 pts)',
+    ],
+    pdf:'https://www.mathsenligne.net/annales-bac/',
+    corrige:'https://www.annabac.com/',
+    gratuit:true, region:'france'
+  },
+  {
+    id:23, mat:'physique', type:'bac', annee:2024, zone:'Polynésie', niveau:'Terminale',
+    titre:'Bac Physique-Chimie 2024 — Polynésie',
+    desc:'Session juin — sujets adaptés au contexte polynésien.',
+    duree:'3h30', pts:'20 pts', themes:['Mécanique','Chimie','Ondes'],
+    questions:[
+      'Partie 1 — Navigation maritime et GPS (7 pts)',
+      'Partie 2 — Chimie de l\'eau de mer (6 pts)',
+      'Partie 3 — Ondes sismiques (7 pts)',
+    ],
+    pdf:'https://labolycee.org/annales-bac/',
+    corrige:'https://labolycee.org/corriges/',
+    gratuit:false, region:'asie'
+  },
+  {
+    id:24, mat:'maths', type:'brevet', annee:2024, zone:'Antilles-Guyane', niveau:'3ème',
+    titre:'Brevet Maths 2024 — Antilles-Guyane',
+    desc:'DNB session de juin. Géométrie et probabilités.',
+    duree:'2h', pts:'50 pts', themes:['Géométrie','Probabilités','Calcul'],
+    questions:[
+      'Exercice 1 : Calculs et fractions (12 pts)',
+      'Exercice 2 : Théorème de Thalès (13 pts)',
+      'Exercice 3 : Probabilités et arbre (15 pts)',
+      'Exercice 4 : Fonctions et tableaux (10 pts)',
+    ],
+    pdf:'https://www.sujetdebrevet.com/',
+    corrige:'https://www.sujetdebrevet.com/corriges',
+    gratuit:false, region:'antilles'
+  },
+];
+
+// ═══════════════════════
+// STATE & RENDER
+// ═══════════════════════
+let filters = { mat:'tout', type:'tout', search:'' };
+
+function filter(key, val, btn) {
+  filters[key] = val;
+  document.querySelectorAll(`.fbtn.${key}`).forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+function search(val) {
+  filters.search = val.toLowerCase();
+  render();
+}
+
+function render() {
+  let data = SUJETS;
+  if (filters.mat !== 'tout') data = data.filter(s => s.mat === filters.mat);
+  if (filters.type !== 'tout') data = data.filter(s => s.type === filters.type);
+  if (filters.search) data = data.filter(s =>
+    s.titre.toLowerCase().includes(filters.search) ||
+    s.zone.toLowerCase().includes(filters.search) ||
+    s.themes.some(t => t.toLowerCase().includes(filters.search)) ||
+    String(s.annee).includes(filters.search)
+  );
+
+  const grid = document.getElementById('sujetsGrid');
+  const empty = document.getElementById('emptyState');
+
+  if (data.length === 0) {
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  // Trier par année décroissante
+  data.sort((a,b) => b.annee - a.annee);
+
+  grid.innerHTML = data.map(s => {
+    const matColor = s.mat === 'maths' ? 'maths' : s.mat === 'physique' ? 'physique' : 'chimie';
+    const typeLabel = s.type === 'bac' ? 'bac' : 'brevet';
+    const typeLabelFr = s.type === 'bac' ? '🎓 BAC' : '✏️ BREVET';
+    const regionFlag = {france:'🇫🇷', asie:'🌏', antilles:'🌴', amerique:'🌎'}[s.region] || '🌍';
+
+    const questionsHTML = s.questions.slice(0,3).map(q => `
+      <div class="preview-q">
+        <div class="preview-q-num">▸</div>
+        <div>${q}</div>
+      </div>`).join('');
+
+    const actionsHTML = s.gratuit
+      ? `<div class="sujet-actions">
+          <a href="${s.pdf}" target="_blank" class="btn-pdf primary">📥 Télécharger le sujet PDF</a>
+          <a href="${s.corrige}" target="_blank" class="btn-pdf corrige">✓ Corrigé</a>
+        </div>`
+      : `<div class="premium-lock-overlay">
+          <div class="lock-text">🔒 Corrigé détaillé — <strong>Premium</strong></div>
+          <a href="${s.pdf}" target="_blank" class="btn-pdf secondary" style="text-decoration:none">📥 Sujet</a>
+          <button class="btn-unlock-sm" onclick="window.location='index.html#tarifs'">✦ Premium</button>
+        </div>`;
+
+    return `
+      <div class="sujet-card" data-mat="${s.mat}" data-type="${s.type}" data-annee="${s.annee}">
+        <div class="sujet-top">
+          <div class="sujet-mat-bar ${matColor}"></div>
+          <div class="sujet-tags">
+            <span class="stag stag-${s.mat}">${s.mat.charAt(0).toUpperCase()+s.mat.slice(1)}</span>
+            <span class="stag stag-${typeLabel}">${typeLabelFr}</span>
+            <span class="stag stag-year">${s.annee}</span>
+            <span class="stag stag-region">${regionFlag} ${s.zone}</span>
+          </div>
+          <div class="sujet-title">${s.titre}</div>
+          <div class="sujet-desc">${s.desc}</div>
+          <div class="sujet-meta">
+            <span>🕐 ${s.duree}</span>
+            <span>📊 ${s.pts}</span>
+            <span>📚 ${s.themes.join(' · ')}</span>
+          </div>
+        </div>
+        <div class="sujet-preview">
+          <div class="preview-label">Aperçu des exercices</div>
+          <div class="preview-questions">${questionsHTML}</div>
+          ${s.questions.length > 3 ? `<div class="preview-more">+ ${s.questions.length-3} exercice(s) supplémentaire(s)</div>` : ''}
+        </div>
+        ${actionsHTML}
+      </div>`;
+  }).join('');
+}
+
+render();
+</script>
+</body>
+</html>
