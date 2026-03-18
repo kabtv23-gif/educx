@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EDUCX — Annales</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg:            #0d0f1a;
+      --surface:       #13162a;
+      --border:        rgba(255,255,255,0.07);
+      --border2:       rgba(255,255,255,0.12);
+      --accent-blue:   #4f8ef7;
+      --accent-purple: #7c5cfc;
+      --accent-teal:   #00d4aa;
+      --accent-orange: #f97316;
+      --maths:         #4f8ef7;
+      --physique:      #a855f7;
+      --brevet:        #00d4aa;
+      --bac:           #f97316;
+      --text:          #e8eaf0;
+      --muted:         #6b7280;
+      --radius:        14px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+
+    nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 32px; border-bottom: 1px solid var(--border);
+      background: rgba(13,15,26,.85); backdrop-filter: blur(12px);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .logo {
+      font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.4rem;
+      background: linear-gradient(135deg, #4f8ef7, #7c5cfc);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; text-decoration: none;
+    }
+    .nav-btn {
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+      color: #fff; border: none; padding: 10px 22px; border-radius: 50px;
+      font-family: 'Syne', sans-serif; font-weight: 600; font-size: .9rem;
+      cursor: pointer; text-decoration: none;
+    }
+
+    .hero { padding: 56px 32px 40px; max-width: 920px; margin: 0 auto; }
+    .hero-label { font-size: .75rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--accent-teal); margin-bottom: 12px; }
+    .hero h1 { font-family: 'Syne', sans-serif; font-size: clamp(1.9rem, 4vw, 2.8rem); font-weight: 800; line-height: 1.15; margin-bottom: 12px; }
+    .hero p { color: var(--muted); font-size: 1rem; max-width: 520px; }
+
+    .filters-wrap { padding: 0 32px 32px; max-width: 920px; margin: 0 auto; }
+    .filters { display: flex; flex-wrap: wrap; gap: 10px; }
+    .filter-btn {
+      padding: 8px 18px; border-radius: 50px; border: 1px solid var(--border2);
+      background: transparent; color: var(--muted); font-family: 'DM Sans', sans-serif;
+      font-size: .85rem; font-weight: 500; cursor: pointer; transition: all .2s;
+    }
+    .filter-btn:hover { border-color: var(--accent-blue); color: var(--text); }
+    .filter-btn.active { background: var(--accent-blue); border-color: var(--accent-blue); color: #fff; }
+    .filter-btn[data-f="physique"].active { background: var(--physique); border-color: var(--physique); }
+    .filter-btn[data-f="brevet"].active   { background: var(--brevet);   border-color: var(--brevet); color: #0d0f1a; }
+    .filter-btn[data-f="bac"].active      { background: var(--bac);      border-color: var(--bac); }
+
+    .grid-wrap { padding: 0 32px 64px; max-width: 920px; margin: 0 auto; }
+    .count { font-size: .82rem; color: var(--muted); margin-bottom: 20px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(265px, 1fr)); gap: 16px; }
+
+    .card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 20px; transition: transform .2s, border-color .2s, box-shadow .2s;
+      display: flex; flex-direction: column; gap: 14px;
+    }
+    .card:hover { transform: translateY(-4px); border-color: var(--border2); box-shadow: 0 12px 40px rgba(0,0,0,.4); }
+
+    .card-top { display: flex; align-items: center; justify-content: space-between; }
+    .badges { display: flex; gap: 6px; flex-wrap: wrap; }
+    .badge { font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; padding: 3px 9px; border-radius: 50px; }
+    .badge-maths    { background: rgba(79,142,247,.15);  color: var(--maths); }
+    .badge-physique { background: rgba(168,85,247,.15);  color: var(--physique); }
+    .badge-bac      { background: rgba(249,115,22,.15);  color: var(--bac); }
+    .badge-brevet   { background: rgba(0,212,170,.15);   color: var(--brevet); }
+
+    .card-year { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem; color: var(--muted); }
+    .card-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: .95rem; line-height: 1.35; }
+    .card-sub { font-size: .78rem; color: var(--muted); margin-top: 3px; }
+
+    .card-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: auto; }
+    .card-actions.single { grid-template-columns: 1fr; }
+
+    .btn-action {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 9px 12px; border-radius: 9px; font-size: .8rem; font-weight: 600;
+      text-decoration: none; border: none; cursor: pointer; transition: opacity .15s;
+    }
+    .btn-action:hover { opacity: .75; }
+    .btn-sujet   { background: rgba(255,255,255,.06); color: var(--text); }
+    .btn-corrige { background: rgba(79,142,247,.15);  color: var(--accent-blue); }
+    .btn-full    { background: rgba(79,142,247,.12);  color: var(--accent-blue); }
+
+    .empty { grid-column: 1/-1; text-align: center; padding: 60px 20px; color: var(--muted); }
+    .empty span { font-size: 2.5rem; display: block; margin-bottom: 12px; }
+
+    @media (max-width: 600px) {
+      nav { padding: 14px 18px; }
+      .hero, .filters-wrap, .grid-wrap { padding-left: 18px; padding-right: 18px; }
+      .hero { padding-top: 36px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="logo">EDUCX</a>
+  <a href="index.html" class="nav-btn">Commencer</a>
+</nav>
+
+<div class="hero">
+  <p class="hero-label">Bibliothèque</p>
+  <h1>Toutes les annales</h1>
+  <p>Sujets et corrigés officiels pour le Brevet et le Bac — Maths et Physique-Chimie.</p>
+</div>
+
+<div class="filters-wrap">
+  <div class="filters">
+    <button class="filter-btn active" data-f="all">Tout</button>
+    <button class="filter-btn" data-f="bac">🎓 Bac</button>
+    <button class="filter-btn" data-f="brevet">✏️ Brevet</button>
+    <button class="filter-btn" data-f="maths">➕ Maths</button>
+    <button class="filter-btn" data-f="physique">🧪 Physique-Chimie</button>
+  </div>
+</div>
+
+<div class="grid-wrap">
+  <p class="count" id="count"></p>
+  <div class="grid" id="grid"></div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────
+//  ANNALES — Ajoute tes 84 entrées ici.
+//  url     : chemin relatif vers ton PDF dans le dossier /pdfs/
+//  corrige : chemin vers le corrigé, ou null si pas de corrigé séparé
+// ─────────────────────────────────────────────────────────────
+const ANNALES = [
+
+  /* ══ BREVET ══ */
+  {
+    type:'brevet', mat:'physique', annee:2025,
+    titre:'Sciences — Sujet officiel',
+    zone:'Métropole',
+    url:'pdfs/25GENSCMEAG1.pdf',
+    corrige:'pdfs/Sciences_corrige_complet_brevet_general_2025.pdf'
+  },
+  {
+    type:'brevet', mat:'physique', annee:2025,
+    titre:'Physique-Chimie — Sujet & Corrigé complet',
+    zone:'Métropole',
+    url:'pdfs/c004e85e-2661-46f1-ad41-1527929cc574.pdf',
+    corrige:null
+  },
+
+  /* ══ BAC PHYSIQUE-CHIMIE — 2025 ══ */
+  {
+    type:'bac', mat:'physique', annee:2025,
+    titre:'Sujet complet — Original',
+    zone:'Métropole — Jour 1',
+    url:'pdfs/2025-Metro-J1-Sujet-Original.pdf',
+    corrige:null
+  },
+  {
+    type:'bac', mat:'physique', annee:2025,
+    titre:'Exo 1 — Bleu de bromophénol (9 pts)',
+    zone:'Métropole — Jour 1',
+    url:'pdfs/2025-Metro-J1-Exo1-Sujet-BleuBromophenol-9pts.pdf',
+    corrige:null
+  },
+  {
+    type:'bac', mat:'physique', annee:2025,
+    titre:'Exo 3 — Viscosimètre à chute de bille (5 pts)',
+    zone:'Métropole — Jour 1',
+    url:'pdfs/2025-Metro-J1-Exo3-Sujet-Viscosimetre-5pts.pdf',
+    corrige:null
+  },
+
+  /* ══ BAC PHYSIQUE-CHIMIE — 2023 ══ */
+  {
+    type:'bac', mat:'physique', annee:2023,
+    titre:'Sujet complet — Original',
+    zone:'Métropole — Jour 1',
+    url:'pdfs/2023-Metropole-J1-SujetOriginal.pdf',
+    corrige:null
+  },
+  {
+    type:'bac', mat:'physique', annee:2023,
+    titre:'Exo 1 — Saturne — Correction (11 pts)',
+    zone:'Métropole — Jour 1',
+    url:'pdfs/2023-Metro-J1-Exo1-Correction-Saturne-11pts_1.pdf',
+    corrige:null
+  },
+  {
+    type:'bac', mat:'physique', annee:2023,
+    titre:'Exo 2 — Acide butanoïque — Correction (5 pts)',
+    zone:'Polynésie — Septembre',
+    url:'pdfs/2023-09-Polynesie-Exo2-Correction-Kholrausch-Qr-Tau-5pts.pdf',
+    corrige:null
+  },
+
+  /* ══ BAC PHYSIQUE-CHIMIE — 2022 ══ */
+  {
+    type:'bac', mat:'physique', annee:2022,
+    titre:'Exo 1 — Colorant E127 — Correction (10 pts)',
+    zone:'Métropole — Jour 1',
+    url:'pdfs/2022-Metropole-J1-Exo1-Correction-ColorantE127-10pts_4.pdf',
+    corrige:null
+  },
+  {
+    type:'bac', mat:'physique', annee:2022,
+    titre:'Exo 1 — Mars & Satellite (10 pts)',
+    zone:'Métropole — Jour 2',
+    url:'pdfs/2022-Metropole-J2-Exo1-Sujet-Mars-Satellite-10pts.pdf',
+    corrige:null
+  },
+  {
+    type:'bac', mat:'physique', annee:2022,
+    titre:'Exo A — Arôme de vanille CCM (5 pts)',
+    zone:'Métropole — Jour 2',
+    url:'pdfs/2022-Metropole-J2-ExoA-Sujet-VanilleCCM-5pts.pdf',
+    corrige:null
+  },
+  {
+    type:'bac', mat:'physique', annee:2022,
+    titre:'Exo C — Piles historiques (5 pts)',
+    zone:'Métropole — Jour 2',
+    url:'pdfs/2022-Metropole-J2-ExoC-Sujet-PilesHistoriques-5pts.pdf',
+    corrige:null
+  },
+
+  /* ══ BAC MATHS — ajoute tes fichiers maths ici ══ */
+  // Exemple :
+  // { type:'bac', mat:'maths', annee:2025, titre:'Sujet complet', zone:'Métropole — Jour 1', url:'pdfs/TON-FICHIER.pdf', corrige:null },
+
+];
+
+// ─────────────────────────────────────────────
+let currentFilter = 'all';
+
+const SVG_DOC = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
+const SVG_OK  = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`;
+
+function getFiltered() {
+  if (currentFilter === 'all') return ANNALES;
+  if (currentFilter === 'bac' || currentFilter === 'brevet') return ANNALES.filter(a => a.type === currentFilter);
+  return ANNALES.filter(a => a.mat === currentFilter);
+}
+
+function matLabel(m) { return m === 'physique' ? 'Physique-Chimie' : 'Maths'; }
+
+function render() {
+  const data = getFiltered();
+  const grid = document.getElementById('grid');
+  const count = document.getElementById('count');
+  count.textContent = data.length + ' annale' + (data.length > 1 ? 's' : '');
+
+  if (!data.length) {
+    grid.innerHTML = `<div class="empty"><span>📂</span>Aucune annale pour ce filtre.</div>`;
+    return;
+  }
+
+  grid.innerHTML = data.map(a => `
+    <div class="card">
+      <div class="card-top">
+        <div class="badges">
+          <span class="badge badge-${a.type}">${a.type}</span>
+          <span class="badge badge-${a.mat}">${matLabel(a.mat)}</span>
+        </div>
+        <span class="card-year">${a.annee}</span>
+      </div>
+      <div>
+        <div class="card-title">${a.titre}</div>
+        <div class="card-sub">${a.zone}</div>
+      </div>
+      <div class="card-actions ${!a.corrige ? 'single' : ''}">
+        <a href="${a.url}" target="_blank" class="btn-action ${a.corrige ? 'btn-sujet' : 'btn-full'}">
+          ${SVG_DOC} ${a.corrige ? 'Sujet' : 'Ouvrir le PDF'}
+        </a>
+        ${a.corrige ? `<a href="${a.corrige}" target="_blank" class="btn-action btn-corrige">${SVG_OK} Corrigé</a>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.f;
+    render();
+  });
+});
+
+render();
+</script>
+</body>
+</html>
