@@ -1,242 +1,174 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EDUCX — Annales Exactes 2020-2026</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
-<style>
-:root{--bg:#07080f;--surface:#0f1120;--surface2:#171929;--border:rgba(255,255,255,0.08);--accent:#5b6ef8;--accent2:#f85b9e;--accent3:#5bf8c4;--gold:#f8c25b;--text:#e8eaf6;--muted:#6b7280;}
-*{margin:0;padding:0;box-sizing:border-box;}
-body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow-x:hidden;}
-.blob{position:fixed;border-radius:50%;filter:blur(120px);z-index:0;opacity:0.1;pointer-events:none;}
-.blob-1{width:500px;height:500px;background:var(--accent);top:-150px;left:-150px;}
-.blob-2{width:400px;height:400px;background:var(--accent2);bottom:-100px;right:-100px;}
-
-nav{position:fixed;top:0;left:0;right:0;z-index:1000;padding:0 32px;height:68px;display:flex;align-items:center;justify-content:space-between;background:rgba(7,8,15,0.88);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);}
-.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.5rem;background:linear-gradient(135deg,var(--accent),var(--accent3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-decoration:none;}
-
-.container{max-width:1100px;margin:0 auto;padding:100px 24px 60px;position:relative;z-index:1;}
-
-/* HEADER */
-.page-header{text-align:center;margin-bottom:48px;}
-.page-title{font-family:'Syne',sans-serif;font-size:2.5rem;font-weight:800;margin-bottom:12px;}
-.page-title span{background:linear-gradient(135deg,var(--accent),var(--accent3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-
-/* FILTRES */
-.filters{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:36px;align-items:center;background:var(--surface);padding:20px;border-radius:20px;border:1px solid var(--border);}
-.fbtn{padding:8px 18px;border-radius:50px;border:1px solid var(--border);background:transparent;color:var(--muted);font-weight:600;cursor:pointer;transition:0.2s;font-size:0.85rem;}
-.fbtn.active{background:var(--accent);color:white;border-color:var(--accent);}
-.search-input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:10px 16px;color:white;outline:none;}
-
-/* GRID */
-.sujets-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px;}
-.sujet-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;overflow:hidden;transition:0.3s;display:flex;flex-direction:column;}
-.sujet-card:hover{transform:translateY(-5px);border-color:var(--accent);}
-.sujet-top{padding:20px;flex-grow:1;}
-.bar-maths{height:4px;background:var(--accent);}
-.bar-physique{height:4px;background:var(--accent2);}
-.bar-chimie{height:4px;background:var(--accent3);}
-
-.stag{padding:3px 10px;border-radius:50px;font-size:0.65rem;font-weight:800;text-transform:uppercase;margin-right:5px;}
-.stag-bac{background:rgba(91,110,248,0.1);color:var(--accent);}
-.stag-brevet{background:rgba(248,91,158,0.1);color:var(--accent2);}
-.stag-year{background:rgba(248,194,91,0.15);color:var(--gold);}
-
-.sujet-title{font-family:'Syne',sans-serif;font-weight:800;font-size:1.1rem;margin:10px 0 5px;}
-.sujet-desc{color:var(--muted);font-size:0.85rem;margin-bottom:15px;}
-
-.sujet-actions{padding:15px 20px;border-top:1px solid var(--border);display:flex;gap:10px;}
-.btn-pdf{flex:1;padding:10px;text-align:center;border-radius:10px;text-decoration:none;font-weight:700;font-size:0.8rem;transition:0.2s;}
-.btn-main{background:var(--accent);color:white;}
-.btn-corrige{background:rgba(91,248,196,0.1);color:var(--accent3);border:1px solid rgba(91,248,196,0.2);}
-
-@media(max-width:768px){.search-input{width:100%;}}
-</style>
-</head>
-<body>
-<div class="blob blob-1"></div>
-<div class="blob blob-2"></div>
-
-<nav>
-  <a href="#" class="logo">EDUCX</a>
-</nav>
-
-<div class="container">
-  <div class="page-header">
-    <div class="page-title">Annales Officielles <span>2020 — 2026</span></div>
-    <p style="color:var(--muted)">Sujets de Bac (Maths) et Labolycée (Physique/Chimie)</p>
-  </div>
-
-  <div class="filters">
-      <button class="fbtn active" onclick="filter('tout', this)">Tout</button>
-      <button class="fbtn" onclick="filter('maths', this)">📐 Maths</button>
-      <button class="fbtn" onclick="filter('physique', this)">⚡ Physique</button>
-      <button class="fbtn" onclick="filter('chimie', this)">🧪 Chimie</button>
-      <input class="search-input" id="searchInput" placeholder="Rechercher une zone ou une année (ex: Métropole, 2024...)" oninput="search()">
-  </div>
-
-  <div id="sujetsGrid" class="sujets-grid"></div>
-</div>
-
-<script>
-// Base de données avec de VRAIS liens exacts Sujet de Bac & Labolycée
 const SUJETS = [
-  // ==========================================
-  // MATHÉMATIQUES (Sujet de Bac)
-  // ==========================================
+
+  // ═════════════════════════════════════════════════════════
+  // 🎓 BAC — MATHÉMATIQUES (APMEP)
+  // ═════════════════════════════════════════════════════════
   {
-    id: 1, mat: 'maths', type: 'bac', annee: 2024, zone: 'Métropole (Jour 1)',
-    titre: 'Bac Maths 2024 — Métropole J1',
-    desc: 'Suites, Probabilités, Géométrie de l\'espace, Fonctions.',
-    url: 'https://www.sujetdebac.fr/annales-pdf/2024/spe-mathematiques-2024-metropole-1-sujet.pdf',
-    corrige: 'https://www.sujetdebac.fr/annales-pdf/2024/spe-mathematiques-2024-metropole-1-corrige.pdf'
+    id: 101, mat: 'maths', type: 'bac', annee: 2025, zone: 'Métropole (J1)',
+    titre: 'Bac Maths 2025 — Métropole J1', desc: 'Sujet du 17 juin 2025.',
+    url: 'https://www.apmep.fr/IMG/pdf/Metro_J1_17_06_2025_DV.pdf',
+    corrige: 'https://www.apmep.fr/IMG/pdf/Corrige__Me_tropole_spe_J1_17_06_2025_VTFK.pdf'
   },
   {
-    id: 2, mat: 'maths', type: 'bac', annee: 2024, zone: 'Amérique du Nord (Jour 1)',
-    titre: 'Bac Maths 2024 — Amérique du Nord',
-    desc: 'Analyse, Équations différentielles, Combinatoire.',
-    url: 'https://www.sujetdebac.fr/annales-pdf/2024/spe-mathematiques-2024-amerique-du-nord-1-sujet.pdf',
-    corrige: 'https://www.sujetdebac.fr/annales-pdf/2024/spe-mathematiques-2024-amerique-du-nord-1-corrige.pdf'
+    id: 102, mat: 'maths', type: 'bac', annee: 2025, zone: 'Métropole (J2)',
+    titre: 'Bac Maths 2025 — Métropole J2', desc: 'Sujet du 18 juin 2025.',
+    url: 'https://www.apmep.fr/IMG/pdf/Metropole__spe_J2_18_06_2025_DV_2.pdf',
+    corrige: 'https://www.apmep.fr/IMG/pdf/Corrige_spe_Metropole_18_06_2025_DV.pdf'
   },
   {
-    id: 3, mat: 'maths', type: 'bac', annee: 2023, zone: 'Métropole (Jour 1)',
-    titre: 'Bac Maths 2023 — Métropole J1',
-    desc: 'Probabilités conditionnelles, QCM géométrie.',
-    url: 'https://www.sujetdebac.fr/annales-pdf/2023/spe-mathematiques-2023-metropole-1-sujet.pdf',
-    corrige: 'https://www.sujetdebac.fr/annales-pdf/2023/spe-mathematiques-2023-metropole-1-corrige.pdf'
+    id: 103, mat: 'maths', type: 'bac', annee: 2025, zone: 'Polynésie (Sept)',
+    titre: 'Bac Maths 2025 — Polynésie (Sept)', desc: 'Sujet du 2 septembre 2025.',
+    url: 'https://www.apmep.fr/IMG/pdf/Polynesie_spe_J1_02_09_2025_FK_VT_DV_2.pdf',
+    corrige: 'https://www.apmep.fr/IMG/pdf/Corrige_Polynesie_spe_J1_02_09_2025_FH.pdf'
   },
   {
-    id: 4, mat: 'maths', type: 'brevet', annee: 2023, zone: 'Métropole',
-    titre: 'Brevet Maths 2023 — Métropole',
-    desc: 'Thalès, Pythagore, Scratch et arithmétique.',
-    url: 'https://www.sujetdebac.fr/annales-pdf/2023/brevet-mathematiques-2023-metropole-sujet.pdf',
-    corrige: 'https://www.sujetdebac.fr/annales-pdf/2023/brevet-mathematiques-2023-metropole-corrige.pdf'
+    id: 104, mat: 'maths', type: 'bac', annee: 2024, zone: 'Polynésie (Sept)',
+    titre: 'Bac Maths 2024 — Polynésie (Sept)', desc: 'Sujet du 9 septembre 2024.',
+    url: 'https://www.apmep.fr/IMG/pdf/Spe_Polynesie_9_09_2024_DV.pdf',
+    corrige: 'https://www.apmep.fr/IMG/pdf/Corrige_Spe_Polynesie_9_09_2024_FH.pdf'
   },
   {
-    id: 5, mat: 'maths', type: 'bac', annee: 2022, zone: 'Centres Étrangers',
-    titre: 'Bac Maths 2022 — Centres Étrangers',
-    desc: 'Fonctions exponentielles, suites récurrentes.',
-    url: 'https://www.sujetdebac.fr/annales-pdf/2022/spe-mathematiques-2022-centres-etrangers-1-sujet.pdf',
-    corrige: 'https://www.sujetdebac.fr/annales-pdf/2022/spe-mathematiques-2022-centres-etrangers-1-corrige.pdf'
+    id: 105, mat: 'maths', type: 'bac', annee: 2024, zone: 'Amérique du Nord (J2)',
+    titre: 'Bac Maths 2024 — Am. du Nord J2', desc: 'Sujet du 22 mai 2024.',
+    url: 'https://www.apmep.fr/IMG/pdf/Spe__Ame_rique_Nord_J2_22_mai_2024.pdf',
+    corrige: 'https://www.apmep.fr/IMG/pdf/Corrige_spe_Amerique_Nord_22_05_2024_DV.pdf'
   },
   {
-    id: 6, mat: 'maths', type: 'bac', annee: 2021, zone: 'Métropole',
-    titre: 'Bac Maths 2021 — Métropole Sujet 1',
-    desc: 'Étude de fonctions logarithmes, QCM.',
-    url: 'https://www.sujetdebac.fr/annales-pdf/2021/spe-mathematiques-2021-metropole-1-sujet.pdf',
-    corrige: 'https://www.sujetdebac.fr/annales-pdf/2021/spe-mathematiques-2021-metropole-1-corrige.pdf'
+    id: 106, mat: 'maths', type: 'bac', annee: 2024, zone: 'Centres Étrangers (J1)',
+    titre: 'Bac Maths 2024 — Étranger J1', desc: 'Sujet du 5 juin 2024.',
+    url: 'https://www.apmep.fr/IMG/pdf/Etranger_J1_spe_5_06_2024_DV.pdf',
+    corrige: 'https://www.apmep.fr/IMG/pdf/Corrige_Spe_cialite_centre_e_trangers_groupe_1_jour_1_5_juin_24_.pdf'
+  },
+  {
+    id: 107, mat: 'maths', type: 'bac', annee: 2023, zone: 'Métropole (J1)',
+    titre: 'Bac Maths 2023 — Métropole J1', desc: 'Sujet du 20 mars 2023.',
+    url: 'https://www.apmep.fr/IMG/pdf/Metropole_spe_J1_20_mars_2023_DV.pdf',
+    corrige: 'https://www.apmep.fr/IMG/pdf/Corrige_Metropole_spe_J1_20_mars_2023_FH_2.pdf'
+  },
+  {
+    id: 108, mat: 'maths', type: 'bac', annee: 2023, zone: 'Polynésie',
+    titre: 'Bac Maths 2023 — Polynésie', desc: 'Sujet du 3 mars 2023.',
+    url: 'https://www.apmep.fr/IMG/pdf/Terminale_spe_Polynesie_DV_3_mars_2023.pdf',
+    corrige: 'https://www.apmep.fr/IMG/pdf/Corrige__Polynesie_13_mars_2023_DV.pdf'
+  },
+  {
+    id: 109, mat: 'maths', type: 'bac', annee: 2023, zone: 'Asie (J2)',
+    titre: 'Bac Maths 2023 — Asie J2', desc: 'Sujet du 24 mars 2023.',
+    url: 'https://www.apmep.fr/IMG/pdf/Bac_spe_Asie_J2_24_mars_2023_DV.pdf',
+    corrige: 'https://www.apmep.fr/IMG/pdf/Corrige_Asie_J2_24_mars_2023_DV.pdf'
+  },
+  {
+    id: 110, mat: 'maths', type: 'bac', annee: 2023, zone: 'Amérique du Nord (J1)',
+    titre: 'Bac Maths 2023 — Am. du Nord J1', desc: 'Sujet du 27 mars 2023.',
+    url: 'https://www.apmep.fr/IMG/pdf/Bac_spe_Ame_rique_N_J1_27_mars.pdf',
+    corrige: 'https://www.apmep.fr/IMG/pdf/Corrige_Amerique_N_J1_27_mars_FK.pdf'
   },
 
-  // ==========================================
-  // PHYSIQUE & CHIMIE (Labolycée)
-  // Labolycée gère la PC ensemble, mais on sépare les thèmes dominants
-  // ==========================================
+  // ═════════════════════════════════════════════════════════
+  // 🎓 BAC — PHYSIQUE-CHIMIE (Labolycée)
+  // ═════════════════════════════════════════════════════════
   {
-    id: 7, mat: 'physique', type: 'bac', annee: 2024, zone: 'Métropole (Jour 1)',
-    titre: 'Physique-Chimie 2024 — Métropole J1',
-    desc: 'Mécanique de Newton, Lunette astronomique, Réactions.',
-    url: 'https://labolycee.org/2024-Metropole-Sujet1.pdf',
-    corrige: 'https://labolycee.org/2024-Metropole-Sujet1-Correction.pdf'
+    id: 201, mat: 'physique', type: 'bac', annee: 2025, zone: 'Métropole (J1)',
+    titre: 'Bac Physique-Chimie 2025 — Métropole J1', desc: 'Session de juin 2025.',
+    url: 'https://labolycee.org/bac-2025-metropole-jour-1#sujet',
+    corrige: 'https://labolycee.org/bac-2025-metropole-jour-1#corrige'
   },
   {
-    id: 8, mat: 'chimie', type: 'bac', annee: 2024, zone: 'Amérique du Nord',
-    titre: 'Physique-Chimie 2024 — Amérique Nord',
-    desc: 'Titrage, cinétique chimique, et thermodynamique.',
-    url: 'https://labolycee.org/2024-AmeriqueNord-Sujet1.pdf',
-    corrige: 'https://labolycee.org/2024-AmeriqueNord-Sujet1-Correction.pdf'
+    id: 202, mat: 'physique', type: 'bac', annee: 2025, zone: 'Métropole (Sept J2)',
+    titre: 'Bac Physique-Chimie 2025 — Métropole Sept J2', desc: 'Session de remplacement.',
+    url: 'https://labolycee.org/metropole-2025-septembre-jour-2#sujet',
+    corrige: 'https://labolycee.org/metropole-2025-septembre-jour-2#corrige'
   },
   {
-    id: 9, mat: 'physique', type: 'bac', annee: 2023, zone: 'Asie',
-    titre: 'Physique-Chimie 2023 — Asie',
-    desc: 'Effet Doppler, circuits électriques RC.',
-    url: 'https://labolycee.org/2023-Asie-Sujet1.pdf',
-    corrige: 'https://labolycee.org/2023-Asie-Sujet1-Correction.pdf'
+    id: 203, mat: 'physique', type: 'bac', annee: 2024, zone: 'Métropole (J2)',
+    titre: 'Bac Physique-Chimie 2024 — Métropole J2', desc: 'Session de juin 2024.',
+    url: 'https://labolycee.org/bac-2024-metropole-jour-2#sujet',
+    corrige: 'https://labolycee.org/bac-2024-metropole-jour-2#corrige'
   },
   {
-    id: 10, mat: 'chimie', type: 'bac', annee: 2023, zone: 'Métropole (Jour 1)',
-    titre: 'Physique-Chimie 2023 — Métropole J1',
-    desc: 'Synthèse organique, pH-métrie, ondes.',
-    url: 'https://labolycee.org/2023-Metropole-Sujet1.pdf',
-    corrige: 'https://labolycee.org/2023-Metropole-Sujet1-Correction.pdf'
+    id: 204, mat: 'physique', type: 'bac', annee: 2023, zone: 'Métropole (J1)',
+    titre: 'Bac Physique-Chimie 2023 — Métropole J1', desc: 'Sujet de mars 2023.',
+    url: 'https://labolycee.org/metropole-2023-jour-1#sujet',
+    corrige: 'https://labolycee.org/metropole-2023-jour-1#corrige'
   },
   {
-    id: 11, mat: 'physique', type: 'bac', annee: 2022, zone: 'Antilles-Guyane',
-    titre: 'Physique-Chimie 2022 — Antilles',
-    desc: 'Chute libre, dynamique des fluides.',
-    url: 'https://labolycee.org/2022-Antilles-Sujet1.pdf',
-    corrige: 'https://labolycee.org/2022-Antilles-Sujet1-Correction.pdf'
+    id: 205, mat: 'physique', type: 'bac', annee: 2022, zone: 'Métropole (J1)',
+    titre: 'Bac Physique-Chimie 2022 — Métropole J1', desc: 'Session de mai 2022.',
+    url: 'https://labolycee.org/metropole-2022-jour-1#sujet',
+    corrige: 'https://labolycee.org/metropole-2022-jour-1#corrige'
+  },
+
+  // ═════════════════════════════════════════════════════════
+  // ✏️ BREVET — MATHÉMATIQUES (APMEP)
+  // ═════════════════════════════════════════════════════════
+  {
+    id: 301, mat: 'maths', type: 'brevet', annee: 2026, zone: 'Sujet Zéro',
+    titre: 'Brevet Maths 2026 — Sujet Zéro', desc: 'Spécimen officiel DNB 2026.',
+    url: 'https://www.apmep.fr/IMG/pdf/Brevet_0_A_2026_DV.pdf',
+    corrige: 'https://www.apmep.fr/IMG/pdf/Brevet_0_A_2026_DV.pdf' // (Même lien en attendant le corrigé officiel)
   },
   {
-    id: 12, mat: 'physique', type: 'bac', annee: 2021, zone: 'Métropole',
-    titre: 'Physique-Chimie 2021 — Métropole',
-    desc: 'Capacités expérimentales, ondes lumineuses.',
-    url: 'https://labolycee.org/2021-Metropole-Sujet1.pdf',
-    corrige: 'https://labolycee.org/2021-Metropole-Sujet1-Correction.pdf'
-  },
-  
-  // ==========================================
-  // SUJETS ZERO / SPECIMENS 2025-2026
-  // ==========================================
-  {
-    id: 13, mat: 'maths', type: 'bac', annee: 2026, zone: 'Sujet Zéro',
-    titre: 'Maths 2026 — Sujet Zéro Officiel',
-    desc: 'Spécimen du ministère pour la nouvelle session.',
-    url: 'https://www.sujetdebac.fr/annales-pdf/2024/spe-mathematiques-2024-sujet-zero.pdf', 
-    corrige: 'https://www.sujetdebac.fr/annales-pdf/2024/spe-mathematiques-2024-sujet-zero-corrige.pdf'
+    id: 302, mat: 'maths', type: 'brevet', annee: 2025, zone: 'Métropole',
+    titre: 'Brevet Maths 2025 — Métropole', desc: 'Sujet du 26 juin 2025.',
+    url: 'https://www.apmep.fr/IMG/pdf/Brevet_Me_tropole_26_06_2025_FK.pdf',
+    corrige: 'https://www.apmep.fr/IMG/pdf/Corrige_Brevet_Metropole_26_06_2025_DV.pdf'
   },
   {
-    id: 14, mat: 'physique', type: 'bac', annee: 2025, zone: 'Nouvelle-Calédonie',
-    titre: 'Physique-Chimie 2025 — N-Calédonie',
-    desc: 'Premier sujet tombé pour l\'année 2025.',
-    url: 'https://labolycee.org/2025-NouvelleCaledonie-Sujet.pdf',
-    corrige: 'https://labolycee.org/2025-NouvelleCaledonie-Sujet-Correction.pdf'
+    id: 303, mat: 'maths', type: 'brevet', annee: 2025, zone: 'Métropole (Sept)',
+    titre: 'Brevet Maths 2025 — Métropole Sept.', desc: 'Session de remplacement.',
+    url: 'https://www.apmep.fr/IMG/pdf/Brevet_Metropole_sept_2025_DV.pdf',
+    corrige: 'https://www.apmep.fr/IMG/pdf/Corrige_Brevet_Metro_sept_2025_DV.pdf'
+  },
+  {
+    id: 304, mat: 'maths', type: 'brevet', annee: 2024, zone: 'Métropole',
+    titre: 'Brevet Maths 2024 — Métropole', desc: 'Sujet du 1er juillet 2024.',
+    url: 'https://www.apmep.fr/IMG/pdf/Brevet_Metropole_1_07_2024_DV.pdf',
+    corrige: 'https://www.apmep.fr/IMG/pdf/Corrige_brevet_Metropole_1_07_2024_DV.pdf'
+  },
+  {
+    id: 305, mat: 'maths', type: 'brevet', annee: 2024, zone: 'Métropole/Antilles (Sept)',
+    titre: 'Brevet Maths 2024 — Métropole/Antilles', desc: 'Sujet du 19 septembre 2024.',
+    url: 'https://www.apmep.fr/IMG/pdf/Brevet_19_09_2024_Metro_Ant__DV_3.pdf',
+    corrige: 'https://www.apmep.fr/IMG/pdf/Corrige_Brevet_19_09_2024_Metro_Ant__FH.pdf'
+  },
+  {
+    id: 306, mat: 'maths', type: 'brevet', annee: 2024, zone: 'Martinique',
+    titre: 'Brevet Maths 2024 — Martinique', desc: 'Sujet du 3 juillet 2024.',
+    url: 'https://www.apmep.fr/IMG/pdf/Brevet_Martinique_3_07_2024_DV.pdf',
+    corrige: 'https://www.apmep.fr/IMG/pdf/Corrige_Brevet_Martinique_3_07_2024_DV-2.pdf'
+  },
+  {
+    id: 307, mat: 'maths', type: 'brevet', annee: 2021, zone: 'Amérique du Sud',
+    titre: 'Brevet Maths 2021 — Am. du Sud', desc: 'Sujet de novembre 2021.',
+    url: 'https://www.apmep.fr/IMG/pdf/brevet_am_du_sud_nov_2021_dv.pdf',
+    corrige: 'https://www.apmep.fr/IMG/pdf/corrige_brevet_am_du_sud_nov_2021_fh.pdf'
+  },
+  {
+    id: 308, mat: 'maths', type: 'brevet', annee: 2021, zone: 'Métropole (Sept)',
+    titre: 'Brevet Maths 2021 — Métropole Sept.', desc: 'Sujet du 13 septembre 2021.',
+    url: 'https://www.apmep.fr/IMG/pdf/Brevet_Metropole_13_sept_2021_DV-3.pdf',
+    corrige: 'https://www.apmep.fr/IMG/pdf/Corrige_brevet_Metro_13_09_2021_DV-2.pdf'
+  },
+  {
+    id: 309, mat: 'maths', type: 'brevet', annee: 2020, zone: 'Métropole (Sept)',
+    titre: 'Brevet Maths 2020 — Métropole Sept.', desc: 'Session de remplacement.',
+    url: 'https://www.apmep.fr/IMG/pdf/brevet_metropole_sept_2020_dv-2.pdf',
+    corrige: 'https://www.apmep.fr/IMG/pdf/corrige_brevet_metropole_sept_2020_dv.pdf'
+  },
+  {
+    id: 310, mat: 'maths', type: 'brevet', annee: 2020, zone: 'Polynésie (Sept)',
+    titre: 'Brevet Maths 2020 — Polynésie Sept.', desc: 'Session de remplacement.',
+    url: 'https://www.apmep.fr/IMG/pdf/brevet_polynesie_sept_2020_dv.pdf',
+    corrige: 'https://www.apmep.fr/IMG/pdf/Corrige_brevet_Polynesie_sept_2020_DV-2.pdf'
+  },
+
+  // ═════════════════════════════════════════════════════════
+  // ✏️ BREVET — PHYSIQUE-CHIMIE (Digischool)
+  // ═════════════════════════════════════════════════════════
+  {
+    id: 401, mat: 'physique', type: 'brevet', annee: 2025, zone: 'Métropole',
+    titre: 'Brevet Physique-Chimie 2025 — Métropole', desc: 'DNB Sciences : ISS, électrolyse de l\'eau.',
+    url: 'https://www.digischool.fr/annales/sujet-officiel-physique-chimie-dnb-france-2025-vbj1?srcpath=%2Cfr%2Csuperbrevet%2Cannales%2Ctroisieme%2Cphysique-chimie',
+    corrige: 'https://www.digischool.fr/annales/corrige-physique-chimie-dnb-france-2025-o5s5?srcpath=%2Cfr%2Csuperbrevet%2Cannales%2Ctroisieme%2Cphysique-chimie'
   }
 ];
-
-let currentFilter = 'tout';
-
-function render(data) {
-  const grid = document.getElementById('sujetsGrid');
-  grid.innerHTML = data.map(s => `
-    <div class="sujet-card">
-      <div class="bar-${s.mat}"></div>
-      <div class="sujet-top">
-        <div style="margin-bottom:8px">
-          <span class="stag stag-${s.type}">${s.type.toUpperCase()}</span>
-          <span class="stag stag-year">${s.annee}</span>
-          <span class="stag" style="background:rgba(255,255,255,0.05);">${s.zone}</span>
-        </div>
-        <div class="sujet-title">${s.titre}</div>
-        <div class="sujet-desc">${s.desc}</div>
-      </div>
-      <div class="sujet-actions">
-        <a href="${s.url}" target="_blank" class="btn-pdf btn-main">Sujet PDF</a>
-        <a href="${s.corrige}" target="_blank" class="btn-pdf btn-corrige">Corrigé PDF</a>
-      </div>
-    </div>
-  `).join('');
-}
-
-function filter(mat, btn) {
-  currentFilter = mat;
-  document.querySelectorAll('.fbtn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  search();
-}
-
-function search() {
-  const query = document.getElementById('searchInput').value.toLowerCase();
-  const filtered = SUJETS.filter(s => {
-    const matchMat = currentFilter === 'tout' || s.mat === currentFilter;
-    const matchText = s.titre.toLowerCase().includes(query) || s.zone.toLowerCase().includes(query) || s.annee.toString().includes(query);
-    return matchMat && matchText;
-  });
-  render(filtered);
-}
-
-// Initial render
-render(SUJETS);
-</script>
-</body>
-</html>
