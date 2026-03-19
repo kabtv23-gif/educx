@@ -24,7 +24,7 @@ export default async function handler(req, res) {
         'X-Title': 'EDUCX'
       },
       body: JSON.stringify({
-        model: 'google/gemma-2-27b-it:free',
+        model: 'meta-llama/llama-3.3-70b-instruct:free',
         messages,
         max_tokens: 1200,
         temperature: 0.7
