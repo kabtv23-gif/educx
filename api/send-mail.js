@@ -72,7 +72,7 @@ export default async function handler(req, res) {
         'api-key': BREVO_KEY,
       },
       body: JSON.stringify({
-        sender: { name: 'EDUCX', email: 'noreply@educx.fr' },
+        sender: { name: 'EDUCX', email: 'educx.contact@gmail.com' },
         to: [{ email, name }],
         subject,
         htmlContent,
