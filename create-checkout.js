@@ -1,3 +1,5 @@
+import Stripe from 'stripe';
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -6,7 +8,7 @@ export default async function handler(req, res) {
 
   try {
     const { email } = req.body;
-    const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
@@ -35,3 +37,4 @@ export default async function handler(req, res) {
     res.status(500).json({ error: err.message });
   }
 }
+
