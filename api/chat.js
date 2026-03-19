@@ -8,10 +8,16 @@ export default async function handler(req, res) {
     const { prompt, image, mimeType } = req.body;
     const KEY = process.env.OPENROUTER_API_KEY;
 
+    // Si image → modèle vision, sinon → auto
+    const model = image ? 'google/gemini-flash-1.5' : 'openrouter/auto';
+
     const messages = [{
       role: 'user',
       content: image
-        ? [{ type: 'image_url', image_url: { url: `data:${mimeType};base64,${image}` } }, { type: 'text', text: prompt }]
+        ? [
+            { type: 'image_url', image_url: { url: `data:${mimeType};base64,${image}` } },
+            { type: 'text', text: prompt }
+          ]
         : prompt
     }];
 
@@ -24,7 +30,7 @@ export default async function handler(req, res) {
         'X-Title': 'EDUCX'
       },
       body: JSON.stringify({
-        model: 'openrouter/auto',
+        model,
         messages,
         max_tokens: 10000,
         temperature: 0.7
