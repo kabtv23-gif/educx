@@ -15,6 +15,9 @@ export default async function handler(req, res) {
       payment_method_types: ['card'],
       customer_email: email || undefined,
       allow_promotion_codes: true,
+      subscription_data: {
+        trial_period_days: 30,
+      },
       line_items: [{
         price_data: {
           currency: 'eur',
@@ -37,4 +40,3 @@ export default async function handler(req, res) {
     res.status(500).json({ error: err.message });
   }
 }
-
