@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EDUCX — La Science à ta portée</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<script src="https://js.stripe.com/v3/"></script>
+<style>
+  :root {
+    --bg: #07080f;
+    --surface: #0f1120;
+    --surface2: #171929;
+    --border: rgba(255,255,255,0.08);
+    --accent: #5b6ef8;
+    --accent2: #f85b9e;
+    --accent3: #5bf8c4;
+    --gold: #f8c25b;
+    --text: #e8eaf6;
+    --muted: #6b7280;
+    --radius: 16px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* ─── NOISE OVERLAY ─── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 9999; opacity: 0.4;
+  }
+
+  /* ─── GRADIENT BLOBS ─── */
+  .blob {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(120px);
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.18;
+  }
+  .blob-1 { width: 600px; height: 600px; background: var(--accent); top: -200px; left: -200px; }
+  .blob-2 { width: 500px; height: 500px; background: var(--accent2); bottom: -150px; right: -150px; }
+  .blob-3 { width: 400px; height: 400px; background: var(--accent3); top: 40%; left: 40%; }
+
+  /* ─── NAV ─── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 0 40px;
+    height: 70px;
+    display: flex; align-items: center; justify-content: space-between;
+    background: rgba(7,8,15,0.7);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.6rem;
+    letter-spacing: -1px;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent3) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    cursor: pointer;
+  }
+
+  .nav-links { display: flex; gap: 32px; align-items: center; }
+  .nav-links a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: color 0.2s;
+    cursor: pointer;
+  }
+  .nav-links a:hover { color: var(--text); }
+
+  .nav-cta {
+    background: var(--accent);
+    color: #fff !important;
+    padding: 8px 20px;
+    border-radius: 50px;
+    font-weight: 600 !important;
+    transition: transform 0.2s, box-shadow 0.2s !important;
+  }
+  .nav-cta:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(91,110,248,0.4) !important; }
+
+  .nav-duel {
+    background: rgba(248,91,158,0.12);
+    color: #f85b9e !important;
+    border: 1px solid rgba(248,91,158,0.3);
+    padding: 7px 16px;
+    border-radius: 50px;
+    font-weight: 700 !important;
+    font-size: 0.82rem !important;
+    text-decoration: none;
+    transition: all 0.2s !important;
+  }
+  .nav-duel:hover { background: rgba(248,91,158,0.22) !important; transform: translateY(-1px) !important; }
+
+  .nav-ia {
+    background: rgba(91,248,196,0.12);
+    color: #5bf8c4 !important;
+    border: 1px solid rgba(91,248,196,0.3);
+    padding: 7px 16px;
+    border-radius: 50px;
+    font-weight: 700 !important;
+    font-size: 0.82rem !important;
+    text-decoration: none;
+    transition: all 0.2s !important;
+  }
+  .nav-ia:hover { background: rgba(91,248,196,0.22) !important; transform: translateY(-1px) !important; }
+
+  /* ─── PAGES ─── */
+  .page { display: none; position: relative; z-index: 1; }
+  .page.active { display: block; }
+
+  /* ─── HERO ─── */
+  #home {
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center;
+    padding: 100px 24px 60px;
+  }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 16px;
+    border: 1px solid rgba(91,248,196,0.3);
+    border-radius: 50px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--accent3);
+    margin-bottom: 32px;
+    background: rgba(91,248,196,0.06);
+    animation: fadeUp 0.6s ease both;
+  }
+  .badge::before { content: '✦'; }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(2.8rem, 7vw, 5.5rem);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -2px;
+    margin-bottom: 24px;
+    animation: fadeUp 0.6s 0.1s ease both;
+  }
+
+  h1 span.grad {
+    background: linear-gradient(90deg, var(--accent) 0%, var(--accent2) 50%, var(--accent3) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero-sub {
+    max-width: 580px;
+    color: var(--muted);
+    font-size: 1.1rem;
+    margin: 0 auto 44px;
+    line-height: 1.7;
+    animation: fadeUp 0.6s 0.2s ease both;
+  }
+
+  .hero-btns {
+    display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;
+    animation: fadeUp 0.6s 0.3s ease both;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #7c3aed);
+    color: #fff;
+    border: none;
+    padding: 14px 32px;
+    border-radius: 50px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 20px rgba(91,110,248,0.35);
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 32px rgba(91,110,248,0.5); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 14px 32px;
+    border-radius: 50px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .btn-ghost:hover { border-color: var(--accent); background: rgba(91,110,248,0.08); }
+
+  /* ─── STATS BAR ─── */
+  .stats-bar {
+    display: flex; gap: 48px; flex-wrap: wrap;
+    justify-content: center;
+    padding: 40px 24px 0;
+    animation: fadeUp 0.6s 0.4s ease both;
+  }
+  .stat { text-align: center; }
+  .stat-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text);
+  }
+  .stat-label { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+
+  /* ─── SUBJECTS ─── */
+  .section {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 80px 24px;
+  }
+
+  .section-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-weight: 800;
+    letter-spacing: -1px;
+    margin-bottom: 48px;
+    line-height: 1.15;
+  }
+
+  .subjects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+  }
+
+  .subject-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    cursor: pointer;
+    transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
+    position: relative;
+    overflow: hidden;
+  }
+  .subject-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--card-color, var(--accent));
+    border-radius: 3px 3px 0 0;
+  }
+  .subject-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(255,255,255,0.15);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+  }
+
+  .subject-icon {
+    font-size: 2.4rem;
+    margin-bottom: 16px;
+    display: block;
+  }
+  .subject-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .subject-desc { color: var(--muted); font-size: 0.9rem; margin-bottom: 16px; }
+
+  .subject-levels { display: flex; gap: 8px; flex-wrap: wrap; }
+  .level-tag {
+    padding: 3px 10px;
+    border-radius: 50px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    background: rgba(255,255,255,0.06);
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+
+  /* ─── COURS PAGE ─── */
+  #cours { padding-top: 80px; min-height: 100vh; }
+
+  .filter-bar {
+    display: flex; gap: 12px; flex-wrap: wrap;
+    margin-bottom: 40px;
+  }
+
+  .filter-btn {
+    padding: 8px 20px;
+    border-radius: 50px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .filter-btn.active, .filter-btn:hover {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+
+  .cours-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+  }
+
+  .cours-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.25s, box-shadow 0.25s;
+  }
+  .cours-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+
+  .cours-thumb {
+    height: 140px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 3.5rem;
+    position: relative;
+  }
+
+  .cours-body { padding: 20px; }
+  .cours-meta {
+    display: flex; gap: 8px; margin-bottom: 10px;
+  }
+  .tag {
+    padding: 2px 10px;
+    border-radius: 50px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .tag-maths { background: rgba(91,110,248,0.15); color: var(--accent); }
+  .tag-physique { background: rgba(248,91,158,0.15); color: var(--accent2); }
+  .tag-chimie { background: rgba(91,248,196,0.15); color: var(--accent3); }
+  .tag-college { background: rgba(248,194,91,0.12); color: var(--gold); }
+  .tag-lycee { background: rgba(180,91,248,0.12); color: #b45bf8; }
+
+  .cours-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 8px;
+  }
+  .cours-desc { color: var(--muted); font-size: 0.83rem; margin-bottom: 16px; }
+
+  .cours-footer {
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .cours-duration { color: var(--muted); font-size: 0.78rem; }
+  .lock-icon { font-size: 0.8rem; }
+
+  /* ─── MODAL COURS ─── */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(8px);
+    z-index: 200;
+    align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface2);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 24px;
+    max-width: 700px;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: 40px;
+    position: relative;
+    animation: scaleIn 0.25s ease;
+  }
+
+  .modal-close {
+    position: absolute; top: 20px; right: 20px;
+    background: rgba(255,255,255,0.08);
+    border: none; color: var(--text);
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .modal-close:hover { background: rgba(255,255,255,0.15); }
+
+  .modal h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 800;
+    margin-bottom: 8px;
+  }
+  .modal-sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 28px; }
+
+  .lesson-list { display: flex; flex-direction: column; gap: 12px; }
+  .lesson-item {
+    display: flex; align-items: center; gap: 16px;
+    padding: 14px 18px;
+    background: var(--surface);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .lesson-item:hover { border-color: var(--accent); background: rgba(91,110,248,0.05); }
+
+  .lesson-num {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: rgba(91,110,248,0.15);
+    color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.8rem; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .lesson-name { font-weight: 500; font-size: 0.9rem; flex: 1; }
+  .lesson-duration { color: var(--muted); font-size: 0.78rem; }
+  .lesson-lock { color: var(--muted); font-size: 0.85rem; }
+
+  .modal-action { margin-top: 28px; display: flex; gap: 12px; }
+
+  /* ─── PRICING ─── */
+  #tarifs { padding-top: 80px; min-height: 100vh; }
+
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .pricing-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 36px;
+    position: relative;
+    transition: transform 0.25s;
+  }
+  .pricing-card:hover { transform: translateY(-4px); }
+  .pricing-card.featured {
+    border-color: var(--accent);
+    background: linear-gradient(145deg, rgba(91,110,248,0.08), var(--surface));
+    box-shadow: 0 0 0 1px var(--accent), 0 24px 48px rgba(91,110,248,0.15);
+  }
+
+  .pricing-badge {
+    position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+    background: var(--accent);
+    color: #fff;
+    padding: 4px 16px;
+    border-radius: 50px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .pricing-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .pricing-price {
+    font-family: 'Syne', sans-serif;
+    font-size: 3rem;
+    font-weight: 800;
+    line-height: 1;
+    margin: 16px 0 4px;
+  }
+  .pricing-price sup { font-size: 1.2rem; vertical-align: top; margin-top: 8px; display: inline-block; }
+  .pricing-period { color: var(--muted); font-size: 0.85rem; margin-bottom: 28px; }
+
+  .pricing-features { list-style: none; display: flex; flex-direction: column; gap: 12px; margin-bottom: 32px; }
+  .pricing-features li {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 0.9rem;
+  }
+  .pricing-features li::before {
+    content: '✓';
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: rgba(91,248,196,0.15);
+    color: var(--accent3);
+    font-size: 0.7rem;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    font-weight: 800;
+  }
+  .pricing-features li.no::before {
+    content: '✕';
+    background: rgba(255,255,255,0.05);
+    color: var(--muted);
+  }
+  .pricing-features li.no { color: var(--muted); }
+
+  /* ─── INSCRIPTION / CONNEXION ─── */
+  #inscription, #connexion { padding-top: 80px; min-height: 100vh; display: flex; align-items: center; }
+
+  .auth-container {
+    max-width: 440px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 24px;
+  }
+
+  .auth-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 40px;
+  }
+
+  .auth-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 800;
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+  }
+  .auth-sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 32px; }
+
+  .form-group { margin-bottom: 20px; }
+  .form-label {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: 8px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .form-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-input:focus { border-color: var(--accent); }
+
+  .form-select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .form-select:focus { border-color: var(--accent); }
+  .form-select option { background: var(--surface2); }
+
+  .form-submit {
+    width: 100%;
+    background: linear-gradient(135deg, var(--accent), #7c3aed);
+    color: #fff;
+    border: none;
+    border-radius: 50px;
+    padding: 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    margin-top: 8px;
+    box-shadow: 0 4px 20px rgba(91,110,248,0.3);
+  }
+  .form-submit:hover { transform: translateY(-1px); box-shadow: 0 8px 30px rgba(91,110,248,0.5); }
+
+  .auth-switch {
+    text-align: center;
+    margin-top: 24px;
+    color: var(--muted);
+    font-size: 0.88rem;
+  }
+  .auth-switch a { color: var(--accent); cursor: pointer; text-decoration: none; }
+
+  .plan-selector {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px;
+  }
+  .plan-option {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+  }
+  .plan-option.selected { border-color: var(--accent); background: rgba(91,110,248,0.08); }
+  .plan-option input { display: none; }
+  .plan-name { font-weight: 600; font-size: 0.9rem; }
+  .plan-price { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+  .plan-tag {
+    position: absolute; top: -8px; right: 8px;
+    background: var(--gold);
+    color: #000;
+    font-size: 0.6rem; font-weight: 800;
+    padding: 2px 8px; border-radius: 50px;
+    text-transform: uppercase;
+  }
+
+  /* ─── DASHBOARD ─── */
+  #dashboard { padding-top: 80px; min-height: 100vh; display: none; }
+
+  .dash-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 40px; flex-wrap: gap;
+  }
+  .dash-welcome {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 800;
+  }
+  .dash-plan {
+    padding: 6px 16px;
+    border-radius: 50px;
+    font-size: 0.78rem; font-weight: 600;
+    background: rgba(91,110,248,0.15);
+    color: var(--accent);
+    border: 1px solid rgba(91,110,248,0.3);
+  }
+
+  .progress-cards {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px; margin-bottom: 40px;
+  }
+  .progress-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+  }
+  .progress-card-label { color: var(--muted); font-size: 0.8rem; margin-bottom: 8px; }
+  .progress-card-value { font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 800; }
+
+  .progress-bar-wrap { margin-top: 10px; }
+  .progress-bar {
+    height: 4px; background: rgba(255,255,255,0.08);
+    border-radius: 4px; overflow: hidden;
+  }
+  .progress-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--accent), var(--accent3)); }
+
+  /* ─── FOOTER ─── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 24px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.82rem;
+    position: relative; z-index: 1;
+  }
+  footer strong { color: var(--text); }
+  footer a { color: var(--accent); text-decoration: none; }
+
+  /* ─── TOAST ─── */
+  .toast {
+    position: fixed; bottom: 32px; right: 32px;
+    background: var(--surface2);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 16px 24px;
+    font-size: 0.9rem;
+    z-index: 500;
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.3s ease;
+    max-width: 320px;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  /* ─── ANIMATIONS ─── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 600px) {
+    nav { padding: 0 20px; }
+    .nav-links { gap: 16px; }
+    .nav-links a:not(.nav-cta):not(:last-child) { display: none; }
+    h1 { letter-spacing: -1px; }
+    .modal { padding: 28px 20px; }
+    .auth-card { padding: 28px 20px; }
+    .plan-selector { grid-template-columns: 1fr; }
+  }
+
+  /* scroll indicator on home */
+  .scroll-hint {
+    position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    color: var(--muted); font-size: 0.75rem; letter-spacing: 1px;
+    text-transform: uppercase;
+    animation: bob 2s ease-in-out infinite;
+  }
+  .scroll-hint span { font-size: 1.2rem; }
+  @keyframes bob { 0%,100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(6px); } }
+</style>
+</head>
+<body>
+
+<!-- BLOBS -->
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+<div class="blob blob-3"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="logo" onclick="showPage('home')">EDUCX</div>
+  <div class="nav-links">
+    <a onclick="showPage('cours')">Cours</a>
+    <a onclick="showPage('tarifs')">Tarifs</a>
+    <a href="educx-annales.html">📄 Annales</a>
+    <a href="educx-duel-online.html" class="nav-duel">⚔️ Duel</a>
+    <a href="educx-ia-tuteur.html" class="nav-ia">🧠 IA</a>
+    <a onclick="showPage('connexion')" id="nav-login">Connexion</a>
+    <a class="nav-cta" onclick="showPage('inscription')">Commencer</a>
+  </div>
+</nav>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- MODAL COURS -->
+<div class="modal-overlay" id="coursModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<!-- ═══════════ PAGE : HOME ═══════════ -->
+<div class="page active" id="page-home">
+  <section id="home">
+    <div class="badge">Plateforme éducative française</div>
+    <h1>La science,<br><span class="grad">enfin compréhensible.</span></h1>
+    <p class="hero-sub">Maths, Physique, Chimie — du collège au lycée. Des cours clairs, progressifs et conçus pour réussir. Commence gratuitement dès aujourd'hui.</p>
+    <div class="hero-btns">
+      <button class="btn-primary" onclick="showPage('inscription')">Essai gratuit 1 mois</button>
+      <button class="btn-ghost" onclick="showPage('cours')">Voir les cours →</button>
+    </div>
+    <div class="stats-bar">
+      <div class="stat"><div class="stat-num">300+</div><div class="stat-label">Cours disponibles</div></div>
+      <div class="stat"><div class="stat-num">3</div><div class="stat-label">Matières</div></div>
+      <div class="stat"><div class="stat-num">6</div><div class="stat-label">Niveaux couverts</div></div>
+      <div class="stat"><div class="stat-num">0€</div><div class="stat-label">Pour commencer</div></div>
+    </div>
+    <div class="scroll-hint"><span>↓</span>Découvrir</div>
+  </section>
+
+  <section class="section">
+    <div class="section-label">Matières</div>
+    <h2 class="section-title">Trois disciplines,<br>tous les niveaux.</h2>
+    <div class="subjects-grid">
+      <div class="subject-card" style="--card-color: var(--accent)" onclick="filterAndShow('maths')">
+        <span class="subject-icon">∑</span>
+        <div class="subject-title">Mathématiques</div>
+        <p class="subject-desc">Algèbre, géométrie, fonctions, statistiques, probabilités et bien plus — tout pour maîtriser les maths.</p>
+        <div class="subject-levels">
+          <span class="level-tag">6ème</span><span class="level-tag">5ème</span><span class="level-tag">4ème</span>
+          <span class="level-tag">3ème</span><span class="level-tag">2nde</span><span class="level-tag">1ère</span><span class="level-tag">Terminale</span>
+        </div>
+      </div>
+      <div class="subject-card" style="--card-color: var(--accent2)" onclick="filterAndShow('physique')">
+        <span class="subject-icon">⚛</span>
+        <div class="subject-title">Physique</div>
+        <p class="subject-desc">Mécanique, optique, électricité, ondes — comprendre le monde physique par les équations et l'expérience.</p>
+        <div class="subject-levels">
+          <span class="level-tag">5ème</span><span class="level-tag">4ème</span><span class="level-tag">3ème</span>
+          <span class="level-tag">2nde</span><span class="level-tag">1ère</span><span class="level-tag">Terminale</span>
+        </div>
+      </div>
+      <div class="subject-card" style="--card-color: var(--accent3)" onclick="filterAndShow('chimie')">
+        <span class="subject-icon">⚗</span>
+        <div class="subject-title">Chimie</div>
+        <p class="subject-desc">Atomes, molécules, réactions, tableau périodique, solutions — la chimie démystifiée étape par étape.</p>
+        <div class="subject-levels">
+          <span class="level-tag">5ème</span><span class="level-tag">4ème</span><span class="level-tag">3ème</span>
+          <span class="level-tag">2nde</span><span class="level-tag">1ère</span><span class="level-tag">Terminale</span>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ═══════════ PAGE : COURS ═══════════ -->
+<div class="page" id="page-cours">
+  <section class="section" id="cours">
+    <div class="section-label">Bibliothèque</div>
+    <h2 class="section-title">Tous les cours</h2>
+    <div class="filter-bar" id="filterBar">
+      <button class="filter-btn active" onclick="filterCours('all',this)">Tout</button>
+      <button class="filter-btn" onclick="filterCours('maths',this)">Maths</button>
+      <button class="filter-btn" onclick="filterCours('physique',this)">Physique</button>
+      <button class="filter-btn" onclick="filterCours('chimie',this)">Chimie</button>
+      <button class="filter-btn" onclick="filterCours('college',this)">Collège</button>
+      <button class="filter-btn" onclick="filterCours('lycee',this)">Lycée</button>
+    </div>
+    <div class="cours-grid" id="coursGrid"></div>
+  </section>
+</div>
+
+<!-- ═══════════ PAGE : TARIFS ═══════════ -->
+<div class="page" id="page-tarifs">
+  <section class="section" id="tarifs">
+    <div style="text-align:center; margin-bottom: 60px;">
+      <div class="section-label" style="margin-bottom:12px">Tarifs</div>
+      <h2 class="section-title" style="margin-bottom:16px">Simple et transparent.</h2>
+      <p style="color:var(--muted); max-width:480px; margin: 0 auto;">Commence gratuitement pendant 1 mois, sans carte bancaire. Passe au Premium quand tu es prêt·e.</p>
+    </div>
+    <div class="pricing-grid">
+      <!-- FREE -->
+      <div class="pricing-card">
+        <div class="pricing-name">✨ Gratuit</div>
+        <div class="pricing-price"><sup></sup>0€</div>
+        <div class="pricing-period">1 mois d'essai complet · Sans CB</div>
+        <ul class="pricing-features">
+          <li>Accès à tous les cours pendant 1 mois</li>
+          <li>Toutes les matières & niveaux</li>
+          <li>Exercices & fiches de révision</li>
+          <li>Progression sauvegardée</li>
+          <li class="no">Corrigés détaillés illimités</li>
+          <li class="no">Mode examen blanc</li>
+          <li class="no">Téléchargement des fiches PDF</li>
+        </ul>
+        <button class="btn-primary" style="width:100%; border-radius:12px" onclick="showPage('inscription'); selectPlan('gratuit')">Commencer gratuitement</button>
+      </div>
+
+      <!-- PREMIUM -->
+      <div class="pricing-card featured">
+        <div class="pricing-badge">⭐ Recommandé</div>
+        <div class="pricing-name">🚀 Premium</div>
+        <div class="pricing-price"><sup>€</sup>10<span style="font-size:1.2rem">/mois</span></div>
+        <div class="pricing-period">Sans engagement · Résiliable à tout moment</div>
+        <ul class="pricing-features">
+          <li>Tout du plan Gratuit</li>
+          <li>Accès illimité permanent</li>
+          <li>Corrigés détaillés illimités</li>
+          <li>Mode examen blanc & annales</li>
+          <li>Téléchargement des fiches PDF</li>
+          <li>Suivi de progression avancé</li>
+          <li>Support prioritaire</li>
+        </ul>
+        <button class="btn-primary" style="width:100%; border-radius:12px" id="btn-stripe-tarifs" onclick="startStripeCheckout()">🔒 Payer 10€/mois avec Stripe</button>
+      </div>
+    </div>
+
+    <p style="text-align:center; color:var(--muted); font-size:0.82rem; margin-top:40px;">
+      🔒 Paiement sécurisé · Aucun engagement · Résiliation en 1 clic
+    </p>
+  </section>
+</div>
+
+<!-- ═══════════ PAGE : INSCRIPTION ═══════════ -->
+<div class="page" id="page-inscription">
+  <section id="inscription">
+    <div class="auth-container">
+      <div class="auth-card">
+        <div class="auth-title">Créer mon compte</div>
+        <div class="auth-sub">Rejoins EDUCX gratuitement pendant 1 mois 🎉</div>
+        <div class="form-group">
+          <label class="form-label">Prénom & Nom</label>
+          <input class="form-input" id="reg-name" type="text" placeholder="Sophie Martin">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-input" id="reg-email" type="email" placeholder="sophie@exemple.fr">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mot de passe</label>
+          <input class="form-input" id="reg-pass" type="password" placeholder="••••••••">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Niveau scolaire</label>
+          <select class="form-select" id="reg-level">
+            <option value="">Sélectionner…</option>
+            <option>6ème</option><option>5ème</option><option>4ème</option>
+            <option>3ème</option><option>2nde</option><option>1ère</option><option>Terminale</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Choisir mon plan</label>
+          <div class="plan-selector">
+            <label class="plan-option selected" id="plan-gratuit" onclick="selectPlan('gratuit')">
+              <div class="plan-name">✨ Gratuit</div>
+              <div class="plan-price">0€ · 1 mois</div>
+            </label>
+            <label class="plan-option" id="plan-premium" onclick="selectPlan('premium')">
+              <div class="plan-tag">⭐ Pro</div>
+              <div class="plan-name">🚀 Premium</div>
+              <div class="plan-price">10€/mois</div>
+            </label>
+          </div>
+        </div>
+        <button class="form-submit" onclick="registerAndPay()">Créer mon compte →</button>
+        <div class="auth-switch">Déjà un compte ? <a onclick="showPage('connexion')">Se connecter</a></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ═══════════ PAGE : CONNEXION ═══════════ -->
+<div class="page" id="page-connexion">
+  <section id="connexion">
+    <div class="auth-container">
+      <div class="auth-card">
+        <div class="auth-title">Bon retour ! 👋</div>
+        <div class="auth-sub">Connecte-toi pour accéder à tes cours.</div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-input" id="log-email" type="email" placeholder="sophie@exemple.fr">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mot de passe</label>
+          <input class="form-input" id="log-pass" type="password" placeholder="••••••••">
+        </div>
+        <button class="form-submit" onclick="login()">Se connecter →</button>
+        <div class="auth-switch">Pas encore de compte ? <a onclick="showPage('inscription')">S'inscrire</a></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ═══════════ PAGE : DASHBOARD ═══════════ -->
+<div class="page" id="page-dashboard">
+  <section class="section" id="dashboard">
+    <div class="dash-header">
+      <div>
+        <div style="color:var(--muted); font-size:0.85rem; margin-bottom:4px">Bonjour 👋</div>
+        <div class="dash-welcome" id="dashName">Élève</div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+        <span class="dash-plan" id="dashPlan">Essai gratuit</span>
+        <button class="btn-ghost" style="padding:8px 20px;font-size:0.85rem" onclick="logout()">Déconnexion</button>
+      </div>
+    </div>
+
+    <div class="progress-cards">
+      <div class="progress-card">
+        <div class="progress-card-label">Cours complétés</div>
+        <div class="progress-card-value">3</div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar"><div class="progress-fill" style="width:12%"></div></div>
+        </div>
+      </div>
+      <div class="progress-card">
+        <div class="progress-card-label">Heures d'étude</div>
+        <div class="progress-card-value">4.5h</div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar"><div class="progress-fill" style="width:20%;background:linear-gradient(90deg,var(--accent2),var(--accent))"></div></div>
+        </div>
+      </div>
+      <div class="progress-card">
+        <div class="progress-card-label">Score moyen</div>
+        <div class="progress-card-value">82%</div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar"><div class="progress-fill" style="width:82%;background:linear-gradient(90deg,var(--gold),var(--accent3))"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label" style="margin-bottom:20px">Continuer à apprendre</div>
+    <div class="cours-grid" id="dashCoursGrid"></div>
+  </section>
+</div>
+
+<footer>
+  <strong>EDUCX</strong> — La Science à ta portée 🚀<br>
+  <span style="margin-top:8px;display:block">© 2025 EDUCX · Tous droits réservés · Site réalisé par un étudiant en <strong>prépa PCSI</strong> · <a href="#" style="color:var(--accent)">CGU</a> · <a href="#" style="color:var(--accent)">Contact</a></span>
+</footer>
+
+<script>
+// ═══════ DATA ═══════
+const COURS_DATA = [
+  // MATHS COLLEGE
+  { id:1, title:"Les fractions", desc:"Additionner, soustraire, multiplier et diviser des fractions facilement.", matiere:"maths", niveau:"college", icon:"🔢", color:"rgba(91,110,248,0.12)", free:true, duree:"2h30", lecons:["Introduction aux fractions","Addition & soustraction","Multiplication","Division","Exercices corrigés"] },
+  { id:2, title:"Équations du 1er degré", desc:"Résoudre des équations et inéquations à une inconnue pas à pas.", matiere:"maths", niveau:"college", icon:"➕", color:"rgba(91,110,248,0.12)", free:true, duree:"3h", lecons:["Qu'est-ce qu'une équation ?","Résolution simple","Équations avec parenthèses","Inéquations","Problèmes contextualisés"] },
+  { id:3, title:"Géométrie plane", desc:"Triangles, cercles, aires et périmètres — toute la géométrie du collège.", matiere:"maths", niveau:"college", icon:"📐", color:"rgba(91,110,248,0.12)", free:false, duree:"4h", lecons:["Triangles & propriétés","Cercle & disque","Quadrilatères","Théorème de Pythagore","Aires & périmètres"] },
+  { id:4, title:"Probabilités & Stats", desc:"Comprendre les statistiques descriptives et le calcul des probabilités.", matiere:"maths", niveau:"college", icon:"📊", color:"rgba(91,110,248,0.12)", free:false, duree:"2h", lecons:["Vocabulaire des probabilités","Expériences aléatoires","Fréquences & statistiques","Diagrammes","QCM récapitulatif"] },
+
+  // MATHS LYCEE
+  { id:5, title:"Fonctions du 2nd degré", desc:"Trinômes, paraboles, discriminant et racines en détail.", matiere:"maths", niveau:"lycee", icon:"∫", color:"rgba(91,110,248,0.12)", free:true, duree:"5h", lecons:["Forme canonique","Discriminant Δ","Racines réelles","Représentation graphique","Applications"] },
+  { id:6, title:"Dérivation", desc:"Calculer et interpréter la dérivée d'une fonction — bases et applications.", matiere:"maths", niveau:"lycee", icon:"f'", color:"rgba(91,110,248,0.12)", free:false, duree:"6h", lecons:["Nombre dérivé","Fonction dérivée","Règles de calcul","Variations d'une fonction","Extremums"] },
+  { id:7, title:"Suites numériques", desc:"Suites arithmétiques, géométriques et leurs applications concrètes.", matiere:"maths", niveau:"lycee", icon:"∑n", color:"rgba(91,110,248,0.12)", free:false, duree:"4h", lecons:["Définition & vocabulaire","Suites arithmétiques","Suites géométriques","Raisonnement par récurrence","Exercices bac"] },
+
+  // PHYSIQUE COLLEGE
+  { id:8, title:"Introduction à la lumière", desc:"Propagation, réflexion, réfraction — la lumière expliquée simplement.", matiere:"physique", niveau:"college", icon:"💡", color:"rgba(248,91,158,0.12)", free:true, duree:"2h", lecons:["Sources lumineuses","Propagation rectiligne","Ombre & pénombre","Réflexion","Lentilles simples"] },
+  { id:9, title:"L'électricité au collège", desc:"Circuits, courant, tension — les bases de l'électricité en 4ème.", matiere:"physique", niveau:"college", icon:"⚡", color:"rgba(248,91,158,0.12)", free:false, duree:"3h", lecons:["Circuit électrique simple","Courant continu","Loi d'Ohm","Montages série et parallèle","Sécurité électrique"] },
+
+  // PHYSIQUE LYCEE
+  { id:10, title:"Mécanique newtonienne", desc:"Forces, mouvement, lois de Newton — comprendre la mécanique classique.", matiere:"physique", niveau:"lycee", icon:"🚀", color:"rgba(248,91,158,0.12)", free:true, duree:"5h", lecons:["Vecteur force","Principe d'inertie","2ème loi de Newton","3ème loi de Newton","Chute libre"] },
+  { id:11, title:"Ondes & signaux", desc:"Nature des ondes, célérité, fréquence — du son à la lumière.", matiere:"physique", niveau:"lycee", icon:"〰", color:"rgba(248,91,158,0.12)", free:false, duree:"4h", lecons:["Types d'ondes","Célérité & longueur d'onde","Fréquence & période","Effet Doppler","Diffraction"] },
+  { id:12, title:"Électricité & lois de Kirchhoff", desc:"Analyse des circuits complexes avec les lois des mailles et des nœuds.", matiere:"physique", niveau:"lycee", icon:"🔌", color:"rgba(248,91,158,0.12)", free:false, duree:"5h", lecons:["Loi des nœuds","Loi des mailles","Générateurs & récepteurs","Puissance électrique","Exercices type bac"] },
+
+  // CHIMIE COLLEGE
+  { id:13, title:"Atomes & molécules", desc:"Comprendre la structure de la matière dès le collège.", matiere:"chimie", niveau:"college", icon:"⚛", color:"rgba(91,248,196,0.12)", free:true, duree:"2h30", lecons:["Structure de l'atome","Noyau & électrons","Ions","Molécules","Représentation de Lewis basique"] },
+  { id:14, title:"Les mélanges", desc:"Corps purs, mélanges homogènes et hétérogènes, techniques de séparation.", matiere:"chimie", niveau:"college", icon:"🧪", color:"rgba(91,248,196,0.12)", free:false, duree:"2h", lecons:["Corps purs vs mélanges","Décantation","Filtration","Distillation","Dissolution & solubilité"] },
+
+  // CHIMIE LYCEE
+  { id:15, title:"Tableau périodique", desc:"Comprendre et utiliser le tableau de Mendeleïev en profondeur.", matiere:"chimie", niveau:"lycee", icon:"🔬", color:"rgba(91,248,196,0.12)", free:true, duree:"3h", lecons:["Histoire du tableau","Familles d'éléments","Configuration électronique","Propriétés périodiques","Exercices appliqués"] },
+  { id:16, title:"Réactions acide-base", desc:"pH, acides, bases, neutralisation — la chimie des solutions aqueuses.", matiere:"chimie", niveau:"lycee", icon:"⚗", color:"rgba(91,248,196,0.12)", free:false, duree:"4h", lecons:["Acides & bases de Brønsted","Constante Ka","Calcul du pH","Dosage & neutralisation","Courbe de titrage"] },
+  { id:17, title:"Chimie organique", desc:"Nomenclature, groupes fonctionnels, grandes familles — bases de l'organique.", matiere:"chimie", niveau:"lycee", icon:"🧬", color:"rgba(91,248,196,0.12)", free:false, duree:"5h", lecons:["Liaisons C–C & C–H","Alcanes, alcènes, alcools","Nomenclature IUPAC","Réactions d'estérification","Polymères"] },
+];
+
+// ═══════ STATE ═══════
+let currentUser = JSON.parse(localStorage.getItem('educx_user') || 'null');
+let selectedPlan = 'gratuit';
+let currentFilter = 'all';
+
+// ═══════ PAGES ═══════
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  window.scrollTo(0,0);
+  if (id === 'cours') renderCours();
+  if (id === 'dashboard') renderDashboard();
+}
+
+function filterAndShow(mat) {
+  showPage('cours');
+  currentFilter = mat;
+  document.querySelectorAll('.filter-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent.toLowerCase() === mat);
+  });
+  renderCours();
+}
+
+// ═══════ COURS RENDER ═══════
+function getTagHTML(c) {
+  const mTag = `<span class="tag tag-${c.matiere}">${c.matiere.charAt(0).toUpperCase()+c.matiere.slice(1)}</span>`;
+  const nTag = `<span class="tag tag-${c.niveau}">${c.niveau.charAt(0).toUpperCase()+c.niveau.slice(1)}</span>`;
+  return mTag + nTag;
+}
+
+function renderCours(filter = currentFilter) {
+  const grid = document.getElementById('coursGrid');
+  if (!grid) return;
+  const filtered = filter === 'all' ? COURS_DATA : COURS_DATA.filter(c => c.matiere === filter || c.niveau === filter);
+  grid.innerHTML = filtered.map(c => `
+    <div class="cours-card" onclick="openCours(${c.id})">
+      <div class="cours-thumb" style="background:${c.color}">${c.icon}</div>
+      <div class="cours-body">
+        <div class="cours-meta">${getTagHTML(c)}</div>
+        <div class="cours-title">${c.title}</div>
+        <div class="cours-desc">${c.desc}</div>
+        <div class="cours-footer">
+          <span class="cours-duration">🕐 ${c.duree}</span>
+          ${!c.free && !currentUser ? '<span class="lock-icon">🔒 Premium</span>' : '<span style="color:var(--accent3);font-size:0.78rem">✓ Accès libre</span>'}
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function filterCours(val, btn) {
+  currentFilter = val;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCours(val);
+}
+
+// ═══════ MODAL ═══════
+function openCours(id) {
+  const c = COURS_DATA.find(x => x.id === id);
+  const locked = !c.free && !currentUser;
+  document.getElementById('modalContent').innerHTML = `
+    <div style="font-size:3rem; margin-bottom:16px">${c.icon}</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px">${getTagHTML(c)}</div>
+    <h2>${c.title}</h2>
+    <p class="modal-sub">${c.desc} · 🕐 ${c.duree}</p>
+    <div class="lesson-list">
+      ${c.lecons.map((l,i) => `
+        <div class="lesson-item" onclick="${locked && i>1 ? 'promptUpgrade()' : 'startLesson('+id+','+i+')'}">
+          <div class="lesson-num">${i+1}</div>
+          <div class="lesson-name">${l}</div>
+          <span class="lesson-duration">${8+i*3} min</span>
+          <span class="lesson-lock">${locked && i>1 ? '🔒' : '▶'}</span>
+        </div>
+      `).join('')}
+    </div>
+    <div class="modal-action">
+      ${locked
+        ? `<button class="btn-primary" onclick="closeModal(); showPage('inscription')">🚀 Débloquer ce cours</button>`
+        : `<button class="btn-primary" onclick="goToCours(${id})">Commencer le cours ▶</button>`}
+      <button class="btn-ghost" onclick="closeModal()">Fermer</button>
+    </div>
+  `;
+  document.getElementById('coursModal').classList.add('open');
+}
+
+function closeModal() { document.getElementById('coursModal').classList.remove('open'); }
+document.getElementById('coursModal').addEventListener('click', e => { if (e.target.id === 'coursModal') closeModal(); });
+
+function startLesson(cid, lid) {
+  const c = COURS_DATA.find(x => x.id === cid);
+  closeModal();
+  // Rediriger vers le bon fichier selon la matière
+  let fichier = 'cours-maths-educx.html';
+  if (c.matiere === 'physique' || c.matiere === 'chimie') {
+    fichier = 'cours-pc-educx.html';
+  }
+  // Mapper la leçon vers le bon chapitre
+  const chapMap = {
+    // MATHS
+    1: 'fractions', 2: 'equations1', 3: 'pythagore', 4: 'probas',
+    5: 'second_degre', 6: 'derivation', 7: 'suites',
+    // PHYSIQUE
+    8: 'optique', 9: 'electricite', 10: 'mecanique', 11: 'ondes', 12: 'electricite',
+    // CHIMIE
+    13: 'atomes', 14: 'reactions', 15: 'atomes', 16: 'solutions', 17: 'orga'
+  };
+  const chap = chapMap[cid] || '';
+  window.location.href = fichier + '?chapitre=' + chap + '&lecon=' + lid;
+}
+
+function promptUpgrade() {
+  closeModal();
+  showPage('tarifs');
+  showToast('🔓 Passe au Premium pour accéder à tous les contenus !', 4000);
+}
+
+function goToCours(id) {
+  const c = COURS_DATA.find(x => x.id === id);
+  closeModal();
+  let fichier = 'cours-maths-educx.html';
+  if (c.matiere === 'physique' || c.matiere === 'chimie') fichier = 'cours-pc-educx.html';
+  const chapMap = {1:'fractions',2:'equations1',3:'pythagore',4:'probas',5:'second_degre',6:'derivation',7:'suites',8:'optique',9:'electricite',10:'mecanique',11:'ondes',12:'electricite',13:'atomes',14:'reactions',15:'atomes',16:'solutions',17:'orga'};
+  const chap = chapMap[id] || '';
+  window.location.href = fichier + '?chapitre=' + chap;
+}
+
+// ═══════ AUTH ═══════
+function selectPlan(plan) {
+  selectedPlan = plan;
+  document.getElementById('plan-gratuit').classList.toggle('selected', plan === 'gratuit');
+  document.getElementById('plan-premium').classList.toggle('selected', plan === 'premium');
+}
+
+function register() {
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pass = document.getElementById('reg-pass').value;
+  const level = document.getElementById('reg-level').value;
+  if (!name || !email || !pass || !level) { showToast('⚠️ Remplis tous les champs !', 2500); return; }
+  currentUser = { name, email, level, plan: selectedPlan };
+  localStorage.setItem('educx_user', JSON.stringify(currentUser));
+  updateNav();
+  showPage('dashboard');
+  showToast(`🎉 Bienvenue sur EDUCX, ${name.split(' ')[0]} !`, 3000);
+}
+
+function login() {
+  const email = document.getElementById('log-email').value.trim();
+  const pass = document.getElementById('log-pass').value;
+  if (!email || !pass) { showToast('⚠️ Remplis tous les champs !', 2500); return; }
+  // Simulation : connexion avec tout email/mdp (démo)
+  const saved = JSON.parse(localStorage.getItem('educx_user') || 'null');
+  if (saved && saved.email === email) {
+    currentUser = saved;
+    updateNav();
+    showPage('dashboard');
+    showToast(`👋 Bon retour, ${currentUser.name.split(' ')[0]} !`, 3000);
+  } else {
+    // Créer un compte démo
+    currentUser = { name: email.split('@')[0], email, level: '2nde', plan: 'gratuit' };
+    localStorage.setItem('educx_user', JSON.stringify(currentUser));
+    updateNav();
+    showPage('dashboard');
+    showToast(`👋 Connecté en démo !`, 3000);
+  }
+}
+
+function logout() {
+  currentUser = null;
+  localStorage.removeItem('educx_user');
+  updateNav();
+  showPage('home');
+  showToast('👋 À bientôt !', 2000);
+}
+
+function updateNav() {
+  const loginLink = document.getElementById('nav-login');
+  if (currentUser) {
+    loginLink.textContent = 'Mon espace';
+    loginLink.onclick = () => showPage('dashboard');
+  } else {
+    loginLink.textContent = 'Connexion';
+    loginLink.onclick = () => showPage('connexion');
+  }
+}
+
+// ═══════ DASHBOARD ═══════
+function renderDashboard() {
+  if (!currentUser) { showPage('connexion'); return; }
+  document.getElementById('dashName').textContent = currentUser.name;
+  document.getElementById('dashPlan').textContent = currentUser.plan === 'premium' ? '🚀 Premium' : '✨ Essai gratuit';
+  const grid = document.getElementById('dashCoursGrid');
+  const rec = COURS_DATA.slice(0,6);
+  grid.innerHTML = rec.map(c => `
+    <div class="cours-card" onclick="openCours(${c.id})">
+      <div class="cours-thumb" style="background:${c.color}">${c.icon}</div>
+      <div class="cours-body">
+        <div class="cours-meta">${getTagHTML(c)}</div>
+        <div class="cours-title">${c.title}</div>
+        <div class="cours-desc">${c.desc}</div>
+        <div class="cours-footer">
+          <span class="cours-duration">🕐 ${c.duree}</span>
+          <span style="color:var(--accent3);font-size:0.78rem">▶ Continuer</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ═══════ TOAST ═══════
+function showToast(msg, duration=3000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+// ═══════ STRIPE ═══════
+const STRIPE_PUBLIC_KEY = 'pk_live_51T9pwL8lA71lYggxQUkfDG1z4UODiPjO4SuWlZJ1YOxdaWBinqmPE0z12u4VmIjSGNYbvITfGzNbRsKbhGUgERKa005E3bMHP3';
+const stripe = Stripe(STRIPE_PUBLIC_KEY);
+
+async function startStripeCheckout(email) {
+  const btn = document.getElementById('btn-stripe-tarifs');
+  const originalText = btn ? btn.textContent : '';
+  if (btn) { btn.textContent = '⏳ Chargement…'; btn.disabled = true; }
+
+  try {
+    const res = await fetch('/api/create-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email || '' }),
+    });
+    const data = await res.json();
+    if (data.url) {
+      window.location.href = data.url; // Redirection vers Stripe Checkout
+    } else {
+      showToast('❌ Erreur Stripe : ' + (data.error || 'Inconnu'), 4000);
+      if (btn) { btn.textContent = originalText; btn.disabled = false; }
+    }
+  } catch (err) {
+    showToast('❌ Erreur réseau. Réessaie.', 4000);
+    if (btn) { btn.textContent = originalText; btn.disabled = false; }
+  }
+}
+
+async function registerAndPay() {
+  const name  = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pass  = document.getElementById('reg-pass').value;
+  const level = document.getElementById('reg-level').value;
+  if (!name || !email || !pass || !level) { showToast('⚠️ Remplis tous les champs !', 2500); return; }
+
+  if (selectedPlan === 'premium') {
+    // Sauvegarder localement avant de quitter la page
+    currentUser = { name, email, level, plan: 'pending_premium' };
+    localStorage.setItem('educx_user', JSON.stringify(currentUser));
+    // Lancer Stripe Checkout avec l'email pré-rempli
+    const btn = document.querySelector('.form-submit');
+    if (btn) { btn.textContent = '⏳ Redirection Stripe…'; btn.disabled = true; }
+    try {
+      const res = await fetch('/api/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        showToast('❌ Erreur Stripe : ' + (data.error || 'Inconnu'), 4000);
+        if (btn) { btn.textContent = 'Créer mon compte →'; btn.disabled = false; }
+      }
+    } catch (err) {
+      showToast('❌ Erreur réseau. Réessaie.', 4000);
+      if (btn) { btn.textContent = 'Créer mon compte →'; btn.disabled = false; }
+    }
+  } else {
+    // Plan gratuit → inscription normale
+    register();
+  }
+}
+
+// ═══════ INIT ═══════
+if (currentUser) updateNav();
+renderCours();
+</script>
+</body>
+</html>
