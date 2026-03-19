@@ -24,9 +24,9 @@ export default async function handler(req, res) {
         'X-Title': 'EDUCX'
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-pro-exp-03-25:free',
+        model: 'openrouter/auto',
         messages,
-        max_tokens: 8000,
+        max_tokens: 10000,
         temperature: 0.7
       })
     });
