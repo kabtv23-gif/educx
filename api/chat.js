@@ -24,7 +24,7 @@ export default async function handler(req, res) {
         'X-Title': 'EDUCX'
       },
       body: JSON.stringify({
-        model: 'mistralai/mistral-7b-instruct:free',
+        model: 'openrouter/auto',
         messages,
         max_tokens: 1200,
         temperature: 0.7
