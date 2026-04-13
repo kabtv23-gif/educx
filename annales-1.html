@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Annales — EDUCX</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#07080f; --surface:#0f1120; --surface2:#171929;
+  --border:rgba(255,255,255,0.08);
+  --accent:#5b6ef8; --accent2:#f85b9e; --accent3:#5bf8c4;
+  --gold:#f8c25b; --text:#e8eaf6; --muted:#6b7280; --radius:16px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:16px;line-height:1.6;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:9999;opacity:0.4;}
+.blob{position:fixed;border-radius:50%;filter:blur(120px);pointer-events:none;z-index:0;opacity:0.15;}
+.blob-1{width:600px;height:600px;background:var(--accent);top:-200px;left:-200px;}
+.blob-2{width:500px;height:500px;background:var(--accent2);bottom:-150px;right:-150px;}
+.blob-3{width:400px;height:400px;background:var(--accent3);top:40%;left:40%;}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 40px;height:70px;display:flex;align-items:center;justify-content:space-between;background:rgba(7,8,15,0.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.6rem;letter-spacing:-1px;background:linear-gradient(135deg,var(--accent),var(--accent3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-decoration:none;}
+.nav-back{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:0.86rem;font-weight:500;text-decoration:none;transition:color 0.2s;padding:7px 14px;border:1px solid var(--border);border-radius:50px;background:rgba(255,255,255,0.03);}
+.nav-back:hover{color:var(--text);border-color:var(--accent);background:rgba(91,110,248,0.08);}
+.nav-back svg{width:14px;height:14px;stroke:currentColor;fill:none;}
+.hero{padding:110px 24px 48px;text-align:center;position:relative;z-index:1;}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border:1px solid rgba(248,194,91,0.3);border-radius:50px;font-size:0.78rem;font-weight:600;color:var(--gold);margin-bottom:22px;background:rgba(248,194,91,0.07);animation:fadeUp 0.5s ease both;}
+.hero h1{font-family:'Syne',sans-serif;font-size:clamp(2.2rem,5vw,3.8rem);font-weight:800;letter-spacing:-1.5px;line-height:1.1;margin-bottom:14px;animation:fadeUp 0.5s 0.08s ease both;}
+.hero h1 span{background:linear-gradient(90deg,var(--accent),var(--accent2),var(--accent3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hero-sub{color:var(--muted);font-size:1rem;max-width:520px;margin:0 auto 36px;line-height:1.7;animation:fadeUp 0.5s 0.16s ease both;}
+.stats-row{display:flex;gap:32px;flex-wrap:wrap;justify-content:center;margin-bottom:44px;animation:fadeUp 0.5s 0.24s ease both;}
+.stat-pill{display:flex;align-items:center;gap:9px;padding:9px 18px;background:var(--surface);border:1px solid var(--border);border-radius:50px;font-size:0.82rem;}
+.stat-pill-num{font-family:'Syne',sans-serif;font-weight:800;color:var(--accent3);}
+.search-wrap{max-width:620px;margin:0 auto 36px;position:relative;animation:fadeUp 0.5s 0.28s ease both;}
+.search-input{width:100%;background:var(--surface);border:1.5px solid var(--border);border-radius:50px;padding:14px 20px 14px 50px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.95rem;outline:none;transition:border-color 0.2s,box-shadow 0.2s;}
+.search-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(91,110,248,0.12);}
+.search-input::placeholder{color:var(--muted);}
+.search-icon{position:absolute;left:18px;top:50%;transform:translateY(-50%);color:var(--muted);width:18px;height:18px;}
+.search-clear{position:absolute;right:16px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.08);border:none;color:var(--muted);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:0.8rem;display:none;align-items:center;justify-content:center;}
+.search-clear:hover{background:rgba(248,91,158,0.2);color:#f85b9e;}
+.search-clear.vis{display:flex;}
+.filters-section{max-width:1100px;margin:0 auto 36px;padding:0 24px;position:relative;z-index:1;animation:fadeUp 0.5s 0.32s ease both;}
+.filter-group{margin-bottom:14px;}
+.filter-label{font-size:0.7rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:9px;}
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.filter-btn{padding:7px 16px;border-radius:50px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:0.82rem;font-weight:500;cursor:pointer;transition:all 0.2s;}
+.filter-btn:hover{border-color:rgba(255,255,255,0.2);color:var(--text);}
+.filter-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.filter-btn.active.f-bac{background:#b45bf8;border-color:#b45bf8;}
+.filter-btn.active.f-brevet{background:var(--gold);border-color:var(--gold);color:#07080f;}
+.filter-btn.active.f-phychim{background:linear-gradient(135deg,#f85b9e,#5bf8c4);border-color:transparent;color:#07080f;}
+.filter-btn.active.f-sciences{background:var(--gold);border-color:var(--gold);color:#07080f;}
+.filter-btn.active.f-chimie{background:#5bf8c4;border-color:#5bf8c4;color:#07080f;}
+.filter-btn.active.f-physique{background:#f85b9e;border-color:#f85b9e;}
+.filter-btn.active.f-corrige{background:var(--accent3);border-color:var(--accent3);color:#07080f;}
+.filter-divider{width:1px;height:28px;background:var(--border);align-self:center;}
+.results-header{max-width:1100px;margin:0 auto 22px;padding:0 24px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;position:relative;z-index:1;}
+.results-count{font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;color:var(--muted);}
+.results-count span{color:var(--text);}
+.view-toggle{display:flex;gap:5px;}
+.view-btn{background:var(--surface);border:1px solid var(--border);color:var(--muted);width:34px;height:34px;border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;}
+.view-btn.active,.view-btn:hover{border-color:var(--accent);color:var(--accent);}
+.view-btn svg{width:15px;height:15px;fill:currentColor;}
+.section-header{max-width:1100px;margin:0 auto 16px;padding:0 24px;position:relative;z-index:1;display:flex;align-items:center;gap:14px;}
+.section-header-title{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:800;letter-spacing:-0.3px;white-space:nowrap;}
+.section-header-line{flex:1;height:1px;background:var(--border);}
+.section-header-count{font-size:0.76rem;color:var(--muted);font-weight:600;padding:3px 10px;background:var(--surface);border:1px solid var(--border);border-radius:50px;white-space:nowrap;}
+.grid-wrapper{max-width:1100px;margin:0 auto;padding:0 24px;position:relative;z-index:1;}
+.grid-wrapper.list-view .annales-grid{grid-template-columns:1fr;}
+.annales-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px;margin-bottom:32px;}
+.annale-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:transform 0.25s,box-shadow 0.25s,border-color 0.25s;animation:fadeUp 0.4s ease both;display:flex;flex-direction:column;}
+.annale-card:hover{transform:translateY(-4px);box-shadow:0 20px 40px rgba(0,0,0,0.35);border-color:rgba(255,255,255,0.14);}
+.card-top-bar{height:3px;}
+.card-top-bar.bar-bac-phychim{background:linear-gradient(90deg,var(--accent2),var(--gold));}
+.card-top-bar.bar-bac-physique{background:linear-gradient(90deg,var(--accent2),#b45bf8);}
+.card-top-bar.bar-bac-chimie{background:linear-gradient(90deg,var(--accent3),var(--accent));}
+.card-top-bar.bar-brevet{background:linear-gradient(90deg,var(--gold),#f8a25b);}
+.card-top-bar.bar-complet{background:linear-gradient(90deg,var(--accent),var(--accent2),var(--accent3));}
+.card-header{padding:16px 18px 12px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+.card-tags{display:flex;gap:6px;flex-wrap:wrap;}
+.tag{padding:3px 10px;border-radius:50px;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;}
+.tag-phychim{background:linear-gradient(135deg,rgba(248,91,158,0.15),rgba(91,248,196,0.15));color:#c0f0e0;}
+.tag-physique{background:rgba(248,91,158,0.15);color:#f85b9e;}
+.tag-chimie{background:rgba(91,248,196,0.15);color:#5bf8c4;}
+.tag-sciences{background:rgba(248,194,91,0.15);color:var(--gold);}
+.tag-bac{background:rgba(180,91,248,0.1);color:#b45bf8;border:1px solid rgba(180,91,248,0.2);}
+.tag-brevet{background:rgba(248,194,91,0.1);color:var(--gold);border:1px solid rgba(248,194,91,0.2);}
+.tag-year{background:rgba(91,110,248,0.1);color:var(--accent);}
+.tag-zone{background:rgba(255,255,255,0.05);color:var(--muted);}
+.card-pts{font-family:'Syne',sans-serif;font-size:0.78rem;font-weight:800;color:var(--gold);white-space:nowrap;padding:3px 9px;background:rgba(248,194,91,0.08);border-radius:50px;border:1px solid rgba(248,194,91,0.2);}
+.card-body{padding:0 18px 14px;flex:1;}
+.card-session{font-size:0.72rem;font-weight:600;color:var(--muted);letter-spacing:0.4px;text-transform:uppercase;margin-bottom:6px;}
+.card-title{font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;line-height:1.3;margin-bottom:6px;}
+.card-theme{color:var(--muted);font-size:0.8rem;line-height:1.5;}
+.card-footer{padding:12px 18px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;}
+.card-btn{flex:1;padding:9px 14px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.78rem;font-weight:600;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;min-width:0;}
+.card-btn:hover{background:rgba(91,110,248,0.12);border-color:var(--accent);color:var(--accent);}
+.card-btn.primary{background:linear-gradient(135deg,var(--accent2),#c03878);border-color:transparent;color:#fff;}
+.card-btn.primary:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(248,91,158,0.35);}
+.card-btn.corrige{background:rgba(91,248,196,0.08);border-color:rgba(91,248,196,0.25);color:var(--accent3);}
+.card-btn.corrige:hover{background:rgba(91,248,196,0.18);border-color:var(--accent3);}
+.card-btn.disabled{background:rgba(255,255,255,0.03);border-color:var(--border);color:var(--muted);cursor:default;pointer-events:none;opacity:0.5;}
+.card-btn svg{width:13px;height:13px;fill:none;stroke:currentColor;flex-shrink:0;}
+.grid-wrapper.list-view .annale-card{flex-direction:row;align-items:stretch;}
+.grid-wrapper.list-view .card-top-bar{width:3px;height:auto;min-height:100%;}
+.grid-wrapper.list-view .card-header{flex-direction:column;align-items:flex-start;min-width:170px;border-right:1px solid var(--border);}
+.grid-wrapper.list-view .card-body{padding:16px 18px;}
+.grid-wrapper.list-view .card-footer{flex-direction:column;min-width:150px;border-left:1px solid var(--border);border-top:none;justify-content:center;gap:7px;}
+@media(max-width:640px){.grid-wrapper.list-view .annale-card{flex-direction:column;}.grid-wrapper.list-view .card-top-bar{width:auto;height:3px;}.grid-wrapper.list-view .card-header{border-right:none;min-width:unset;}.grid-wrapper.list-view .card-footer{border-left:none;border-top:1px solid var(--border);}}
+.empty-state{max-width:400px;margin:60px auto 100px;text-align:center;padding:0 24px;position:relative;z-index:1;display:none;}
+.empty-state.vis{display:block;}
+.empty-icon{font-size:3.5rem;margin-bottom:16px;opacity:0.6;}
+.empty-title{font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:700;margin-bottom:8px;}
+.empty-sub{color:var(--muted);font-size:0.88rem;}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.87);backdrop-filter:blur(10px);z-index:500;align-items:center;justify-content:center;padding:16px;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface2);border:1px solid rgba(255,255,255,0.1);border-radius:20px;width:100%;max-width:940px;height:90vh;display:flex;flex-direction:column;overflow:hidden;animation:scaleIn 0.22s ease;}
+.modal-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.modal-head-tags{display:flex;gap:6px;flex-wrap:wrap;flex-shrink:0;}
+.modal-head-title{font-family:'Syne',sans-serif;font-weight:700;font-size:0.92rem;flex:1;margin-left:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.modal-close{background:rgba(255,255,255,0.07);border:none;color:var(--muted);width:34px;height:34px;border-radius:50%;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s;line-height:1;}
+.modal-close:hover{background:rgba(248,91,158,0.2);color:#f85b9e;}
+.modal-body{flex:1;overflow:hidden;background:#000;}
+.modal-body iframe{width:100%;height:100%;border:none;display:block;}
+.modal-footer{padding:11px 18px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0;flex-wrap:wrap;}
+.modal-footer-info{color:var(--muted);font-size:0.78rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.modal-dl-btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:linear-gradient(135deg,var(--accent),#7c3aed);color:#fff;border:none;border-radius:50px;font-family:'DM Sans',sans-serif;font-size:0.82rem;font-weight:700;cursor:pointer;text-decoration:none;transition:transform 0.2s,box-shadow 0.2s;flex-shrink:0;}
+.modal-dl-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(91,110,248,0.4);}
+.modal-dl-btn svg{width:13px;height:13px;fill:none;stroke:currentColor;}
+.modal-nav{display:flex;gap:6px;flex-shrink:0;}
+.modal-nav-btn{background:var(--surface);border:1px solid var(--border);color:var(--muted);padding:8px 13px;border-radius:50px;font-family:'DM Sans',sans-serif;font-size:0.78rem;font-weight:600;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:5px;}
+.modal-nav-btn:hover:not(:disabled){border-color:var(--accent);color:var(--accent);}
+.modal-nav-btn:disabled{opacity:0.3;cursor:not-allowed;}
+.toast{position:fixed;bottom:26px;right:26px;background:var(--surface2);border:1px solid var(--accent);border-radius:12px;padding:12px 18px;font-size:0.86rem;font-weight:500;z-index:9000;transform:translateY(60px);opacity:0;transition:all 0.28s ease;max-width:280px;pointer-events:none;}
+.toast.show{transform:translateY(0);opacity:1;}
+footer{border-top:1px solid var(--border);padding:28px 24px;text-align:center;color:var(--muted);font-size:0.78rem;position:relative;z-index:1;margin-top:40px;}
+footer strong{color:var(--text);}
+footer a{color:var(--accent);text-decoration:none;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}
+@keyframes scaleIn{from{opacity:0;transform:scale(0.95);}to{opacity:1;transform:scale(1);}}
+@media(max-width:768px){nav{padding:0 18px;}.hero{padding:90px 20px 36px;}.annales-grid{grid-template-columns:1fr;}.modal{max-height:100vh;border-radius:14px;}.section-header-title{font-size:0.9rem;}}
+@media(max-width:480px){.stats-row{gap:14px;}.stat-pill{padding:7px 13px;font-size:0.78rem;}.hero h1{font-size:2rem;}}
+</style>
+</head>
+<body>
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+<div class="blob blob-3"></div>
+
+<nav>
+  <a href="index.html" class="logo">EDUCX</a>
+  <a href="index.html" class="nav-back">
+    <svg viewBox="0 0 24 24" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>Retour
+  </a>
+</nav>
+
+<div class="hero">
+  <div class="hero-badge">📚 Banque d'annales officielle</div>
+  <h1>Annales <span>BAC & Brevet</span></h1>
+  <p class="hero-sub">Tous les sujets et corrigés de Physique-Chimie triés par matière, diplôme et année. Consulte-les directement ou télécharge-les.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><span class="stat-pill-num" id="total-count">0</span> documents</div>
+    <div class="stat-pill"><span class="stat-pill-num" id="corrige-count">0</span> avec corrigé</div>
+    <div class="stat-pill"><span class="stat-pill-num">2022–2025</span> années</div>
+    <div class="stat-pill"><span class="stat-pill-num">2</span> diplômes</div>
+  </div>
+  <div class="search-wrap">
+    <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input class="search-input" id="searchInput" type="text" placeholder="Rechercher : Saturne, Titrage, Batterie, Mars…" oninput="handleSearch(this.value)">
+    <button class="search-clear" id="searchClear" onclick="clearSearch()">✕</button>
+  </div>
+</div>
+
+<div class="filters-section">
+  <div class="filter-group">
+    <div class="filter-label">Diplôme</div>
+    <div class="filter-row">
+      <button class="filter-btn active" data-filter="diplome" data-val="all" onclick="setFilter('diplome','all',this)">Tous</button>
+      <button class="filter-btn f-bac" data-filter="diplome" data-val="bac" onclick="setFilter('diplome','bac',this)">🎓 BAC Terminale</button>
+      <button class="filter-btn f-brevet" data-filter="diplome" data-val="brevet" onclick="setFilter('diplome','brevet',this)">📜 Brevet (DNB)</button>
+    </div>
+  </div>
+  <div class="filter-group">
+    <div class="filter-label">Matière · Zone · Année · Type</div>
+    <div class="filter-row">
+      <button class="filter-btn active" data-filter="matiere" data-val="all" onclick="setFilter('matiere','all',this)">Toutes</button>
+      <button class="filter-btn f-phychim" data-filter="matiere" data-val="phychim" onclick="setFilter('matiere','phychim',this)">⚗️ Phys-Chimie</button>
+      <button class="filter-btn f-physique" data-filter="matiere" data-val="physique" onclick="setFilter('matiere','physique',this)">⚡ Physique</button>
+      <button class="filter-btn f-chimie" data-filter="matiere" data-val="chimie" onclick="setFilter('matiere','chimie',this)">🧪 Chimie</button>
+      <button class="filter-btn f-sciences" data-filter="matiere" data-val="sciences" onclick="setFilter('matiere','sciences',this)">🔬 Sciences</button>
+      <div class="filter-divider"></div>
+      <button class="filter-btn" data-filter="zone" data-val="all" onclick="setFilter('zone','all',this)" style="display:none"></button>
+      <button class="filter-btn" data-filter="zone" data-val="Métropole" onclick="setFilter('zone','Métropole',this)">🇫🇷 Métropole</button>
+      <button class="filter-btn" data-filter="zone" data-val="Asie" onclick="setFilter('zone','Asie',this)">🌏 Asie</button>
+      <button class="filter-btn" data-filter="zone" data-val="Polynésie" onclick="setFilter('zone','Polynésie',this)">🌴 Polynésie</button>
+      <button class="filter-btn" data-filter="zone" data-val="Antilles" onclick="setFilter('zone','Antilles',this)">🏝️ Antilles</button>
+      <div class="filter-divider"></div>
+      <button class="filter-btn" data-filter="year" data-val="all" onclick="setFilter('year','all',this)" style="display:none"></button>
+      <button class="filter-btn" data-filter="year" data-val="2025" onclick="setFilter('year','2025',this)">2025</button>
+      <button class="filter-btn" data-filter="year" data-val="2024" onclick="setFilter('year','2024',this)">2024</button>
+      <button class="filter-btn" data-filter="year" data-val="2023" onclick="setFilter('year','2023',this)">2023</button>
+      <button class="filter-btn" data-filter="year" data-val="2022" onclick="setFilter('year','2022',this)">2022</button>
+      <div class="filter-divider"></div>
+      <button class="filter-btn" data-filter="type" data-val="all" onclick="setFilter('type','all',this)" style="display:none"></button>
+      <button class="filter-btn" data-filter="type" data-val="sujet" onclick="setFilter('type','sujet',this)">📄 Sujet seul</button>
+      <button class="filter-btn f-corrige" data-filter="type" data-val="corrige" onclick="setFilter('type','corrige',this)">✅ Avec corrigé</button>
+    </div>
+  </div>
+</div>
+
+<div class="results-header">
+  <div class="results-count">Affichage de <span id="shownCount">0</span> documents</div>
+  <div class="view-toggle">
+    <button class="view-btn active" id="gridViewBtn" onclick="setView('grid')" title="Vue grille">
+      <svg viewBox="0 0 16 16"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+    </button>
+    <button class="view-btn" id="listViewBtn" onclick="setView('list')" title="Vue liste">
+      <svg viewBox="0 0 16 16"><rect x="1" y="2" width="14" height="3" rx="1"/><rect x="1" y="7" width="14" height="3" rx="1"/><rect x="1" y="12" width="14" height="3" rx="1"/></svg>
+    </button>
+  </div>
+</div>
+
+<div class="grid-wrapper" id="gridWrapper"></div>
+
+<div class="empty-state" id="emptyState">
+  <div class="empty-icon">🔍</div>
+  <div class="empty-title">Aucun document trouvé</div>
+  <div class="empty-sub">Essaie d'autres filtres ou une recherche différente.</div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-head-tags" id="modalTags"></div>
+      <div class="modal-head-title" id="modalTitle"></div>
+      <button class="modal-close" onclick="closeModalDirect()">✕</button>
+    </div>
+    <div class="modal-body"><iframe id="modalIframe" src="" allowfullscreen></iframe></div>
+    <div class="modal-footer">
+      <div class="modal-footer-info" id="modalInfo"></div>
+      <div class="modal-nav">
+        <button class="modal-nav-btn" id="modalPrev" onclick="modalNav(-1)">← Préc.</button>
+        <button class="modal-nav-btn" id="modalNext" onclick="modalNav(1)">Suiv. →</button>
+      </div>
+      <a class="modal-dl-btn" id="modalDl" href="#" target="_blank" download>
+        <svg viewBox="0 0 24 24" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Télécharger
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<footer>
+  <strong>EDUCX</strong> — Annales officielles BAC & Brevet · Physique-Chimie · Sciences ·
+  <a href="index.html">Retour à l'accueil</a>
+</footer>
+
+<script>
+var BASE = 'https://raw.githubusercontent.com/kabtv23-gif/educx/main/';
+
+// ═══════════════════════════════════════════════════════
+// TOUTES LES ANNALES — extraites du zip Educx_annales_
+// ═══════════════════════════════════════════════════════
+var DATA = [
+  // ── BAC 2025 · MÉTROPOLE J1 ───────────────────────────────
+  { id:1,  year:'2025', zone:'Métropole', session:'Session J1', diplome:'bac',
+    matiere:'chimie',   exo:'Exercice 1', topic:'Bleu de Bromophénol',   pts:'9 pts',
+    desc:"Indicateur coloré acide-base — spectrométrie UV-Visible et équilibres en solution.",
+    sujet:'2025-Metro-J1-Exo1-Sujet-BleuBromophenol-9pts.pdf',
+    corrige:'2025-Metro-J1-Exo1-Correction-BleuBromophenol-9pts_2.pdf' },
+
+  { id:2,  year:'2025', zone:'Métropole', session:'Session J1', diplome:'bac',
+    matiere:'physique', exo:'Exercice 3', topic:'Viscosimètre',          pts:'5 pts',
+    desc:"Mécanique des fluides — mesure de viscosité dynamique par la loi de Stokes.",
+    sujet:'2025-Metro-J1-Exo3-Sujet-Viscosimetre-5pts.pdf',
+    corrige:'2025-Metro-J1-Exo3-Correction-Viscosimetre-5pts_6.pdf' },
+
+  { id:3,  year:'2025', zone:'Métropole', session:'Session J1', diplome:'bac',
+    matiere:'phychim',  exo:'Sujet complet', topic:'Sujet Original Complet', pts:'20 pts',
+    desc:"Sujet officiel intégral BAC Terminale Physique-Chimie — Métropole J1 2025.",
+    sujet:'2025-Metro-J1-Sujet-Original.pdf',
+    corrige:null },
+
+  // ── BAC 2025 · ASIE J2 ────────────────────────────────────
+  { id:4,  year:'2025', zone:'Asie',      session:'Session J2', diplome:'bac',
+    matiere:'chimie',   exo:'Exercice 1', topic:'Batterie Li-ion',       pts:'9 pts',
+    desc:"Électrochimie — batterie lithium-ion, couples redox et calcul de capacité.",
+    sujet:'2025-Asie-J2-Exo1-Sujet-BatterieLi-9pts_0.pdf',
+    corrige:'2025-Asie-J2-Exo1-Correction-BatterieLi-9pts.pdf' },
+
+  { id:5,  year:'2025', zone:'Asie',      session:'Session J2', diplome:'bac',
+    matiere:'physique', exo:'Exercice 2', topic:'Slam Dunk & Golf',      pts:'6 pts',
+    desc:"Mécanique du point matériel — trajectoires balistiques appliquées au sport.",
+    sujet:'2025-Asie-J2-Exo2-Sujet-SlamDunkGolf-6pts.pdf',
+    corrige:'2025-Asie-J2-Exo2-Correction-SlamDunkGolf-6pts_0.pdf' },
+
+  { id:6,  year:'2025', zone:'Asie',      session:'Session J2', diplome:'bac',
+    matiere:'phychim',  exo:'Exercice 3', topic:'CBRC',                  pts:'5 pts',
+    desc:"Chimie organique — analyse et réactivité de composés carbonés.",
+    sujet:'2025-Asie-J2-Exo3-Sujet-CBRC-5pts.pdf',
+    corrige:'2025-Asie-J2-Exo3-Correction-CBRC-5pts.pdf' },
+
+  { id:7,  year:'2025', zone:'Asie',      session:'Session J2', diplome:'bac',
+    matiere:'phychim',  exo:'Sujet complet', topic:'Sujet Original Complet', pts:'20 pts',
+    desc:"Sujet officiel intégral BAC Terminale Physique-Chimie — Asie J2 2025.",
+    sujet:'2025-Asie-J2-Sujet-Original.pdf',
+    corrige:null },
+
+  // ── BAC 2023 · MÉTROPOLE J1 ───────────────────────────────
+  { id:8,  year:'2023', zone:'Métropole', session:'Session J1', diplome:'bac',
+    matiere:'physique', exo:'Exercice 1', topic:'Saturne & Mécanique',   pts:'11 pts',
+    desc:"Gravitation universelle — Saturne, ses anneaux et lois de Kepler.",
+    sujet:'2023-Metro-J1-Exo1-Sujet-Saturne-11pts.pdf',
+    corrige:'2023-Metro-J1-Exo1-Correction-Saturne-11pts_1.pdf' },
+
+  { id:9,  year:'2023', zone:'Métropole', session:'Session J1', diplome:'bac',
+    matiere:'phychim',  exo:'Sujet complet', topic:'Sujet Original Complet', pts:'20 pts',
+    desc:"Sujet officiel intégral BAC Terminale Physique-Chimie — Métropole J1 2023.",
+    sujet:'2023-Metropole-J1-SujetOriginal.pdf',
+    corrige:null },
+
+  // ── BAC 2023 · POLYNÉSIE ──────────────────────────────────
+  { id:10, year:'2023', zone:'Polynésie', session:'Session Sept.', diplome:'bac',
+    matiere:'chimie',   exo:'Exercice 2', topic:'Conductimétrie (Kohlrausch)', pts:'5 pts',
+    desc:"Mesure de conductivité — loi de Kohlrausch, τ et constante de cellule.",
+    sujet:'2023-09-Polynesie-Exo2-Sujet-Kholrausch-Qr-Tau-5pts_0.pdf',
+    corrige:'2023-09-Polynesie-Exo2-Correction-Kholrausch-Qr-Tau-5pts.pdf' },
+
+  { id:11, year:'2023', zone:'Polynésie', session:'Session Sept.', diplome:'bac',
+    matiere:'chimie',   exo:'Exercice 3', topic:'Titrage pH-métrique',   pts:'4 pts',
+    desc:"Titrage acido-basique suivi par pH-métrie — point équivalent.",
+    sujet:'2023-09-Polynesie-Exo3-Sujet-TitragepH-4pts.pdf',
+    corrige:'2023-09-Polynesie-Exo3-Correction-TitragepH-4pts.pdf' },
+
+  // ── BAC 2022 · MÉTROPOLE J1 ───────────────────────────────
+  { id:12, year:'2022', zone:'Métropole', session:'Session J1', diplome:'bac',
+    matiere:'chimie',   exo:'Exercice 1', topic:'Colorant E127',         pts:'10 pts',
+    desc:"Spectrométrie UV-Visible — étude du colorant alimentaire E127 (érythrosine).",
+    sujet:'2022-Metropole-J1-Exo1-Sujet-ColorantE127-10pts.pdf',
+    corrige:'2022-Metropole-J1-Exo1-Correction-ColorantE127-10pts_4.pdf' },
+
+  // ── BAC 2022 · MÉTROPOLE J2 ───────────────────────────────
+  { id:13, year:'2022', zone:'Métropole', session:'Session J2', diplome:'bac',
+    matiere:'physique', exo:'Exercice 1', topic:'Mars & Satellite',      pts:'10 pts',
+    desc:"Mécanique spatiale — orbite de Phobos, lois de Kepler et gravitation.",
+    sujet:'2022-Metropole-J2-Exo1-Sujet-Mars-Satellite-10pts.pdf',
+    corrige:'2022-Metropole-J2-Exo1-Correction-Mars-Satellite-10pts_1.pdf' },
+
+  { id:14, year:'2022', zone:'Métropole', session:'Session J2', diplome:'bac',
+    matiere:'chimie',   exo:'Exercice A', topic:'Vanille & CCM',         pts:'5 pts',
+    desc:"Chromatographie sur couche mince — vanilline naturelle vs synthétique.",
+    sujet:'2022-Metropole-J2-ExoA-Sujet-VanilleCCM-5pts.pdf',
+    corrige:'2022-Metropole-J2-ExoA-Correction-VanilleCCM-5pts.pdf' },
+
+  { id:15, year:'2022', zone:'Métropole', session:'Session J2', diplome:'bac',
+    matiere:'chimie',   exo:'Exercice C', topic:'Piles Historiques',     pts:'5 pts',
+    desc:"Piles électrochimiques historiques — couples redox et demi-équations.",
+    sujet:'2022-Metropole-J2-ExoC-Sujet-PilesHistoriques-5pts.pdf',
+    corrige:'2022-Metropole-J2-ExoC-Correction-PilesHistoriques-5pts_0.pdf' },
+
+  // ── BREVET 2025 · MÉTROPOLE ───────────────────────────────
+  { id:16, year:'2025', zone:'Métropole', session:'Session J1', diplome:'brevet',
+    matiere:'sciences', exo:'Physique-Chimie', topic:"Mission Alpha — ISS (Thomas Pesquet)", pts:'25 pts',
+    desc:"Matériaux innovants et biodégradables à bord de la station spatiale ISS.",
+    sujet:'25GENSCMEAG1.pdf',
+    corrige:'Sciences_corrige_complet_brevet_general_2025.pdf' },
+
+  // ── BREVET 2025 · CORRIGÉ COMPLET ────────────────────────
+  { id:17, year:'2025', zone:'Métropole', session:'Corrigé officiel', diplome:'brevet',
+    matiere:'sciences', exo:'Sujet + Corrigé', topic:"Sciences — Corrigé Complet", pts:'50 pts',
+    desc:"Sujet et corrigé intégral Sciences (SVT + Physique-Chimie) — Brevet général 2025.",
+    sujet:'c004e85e-2661-46f1-ad41-1527929cc574.pdf',
+    corrige:null },
+
+  // ── BREVET 2024 · MÉTROPOLE ───────────────────────────────
+  { id:18, year:'2024', zone:'Métropole', session:'Session J1', diplome:'brevet',
+    matiere:'sciences', exo:'Physique-Chimie', topic:"Explorer les fonds marins", pts:'25 pts',
+    desc:"Chimie des océans — coraux, pH marin et acidification des eaux.",
+    sujet:'37b53f00-4aa3-490e-9d7a-e18a1d8c025b.pdf',
+    corrige:null },
+
+  // ── BREVET 2024 · ANTILLES ────────────────────────────────
+  { id:19, year:'2024', zone:'Antilles',  session:'Session J1', diplome:'brevet',
+    matiere:'sciences', exo:'Physique-Chimie', topic:"Batterie de Smartphone",    pts:'25 pts',
+    desc:"Électrochimie — matériaux et fonctionnement d'une batterie de smartphone.",
+    sujet:'58197bfa-e81c-4729-aab6-a5faa0f607d9.pdf',
+    corrige:null },
+
+  // ── BREVET 2022 · ANTILLES ────────────────────────────────
+  { id:20, year:'2022', zone:'Antilles',  session:'Session J1', diplome:'brevet',
+    matiere:'sciences', exo:'Physique-Chimie', topic:"Exploration de Mars",       pts:'25 pts',
+    desc:"Sonde Mars 2020 (NASA) — forces, atmosphère martienne et énergie solaire.",
+    sujet:'5aa6c319-5da2-4932-99d7-cedbf325cf82.pdf',
+    corrige:null },
+];
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+var filters = { diplome:'all', matiere:'all', zone:'all', year:'all', type:'all' };
+var searchVal = '';
+var modalItems = [];
+var modalIdx = 0;
+
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('total-count').textContent = DATA.length;
+  document.getElementById('corrige-count').textContent = DATA.filter(function(d){ return d.corrige; }).length;
+  render();
+});
+
+// ═══════════════════════════════════════════════════════
+// FILTRES
+// ═══════════════════════════════════════════════════════
+function setFilter(key, val, btn) {
+  filters[key] = val;
+  document.querySelectorAll('[data-filter="'+key+'"]').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  render();
+}
+function handleSearch(val) {
+  searchVal = val.trim().toLowerCase();
+  document.getElementById('searchClear').classList.toggle('vis', !!searchVal);
+  render();
+}
+function clearSearch() {
+  document.getElementById('searchInput').value = '';
+  searchVal = '';
+  document.getElementById('searchClear').classList.remove('vis');
+  render();
+}
+function setView(v) {
+  document.getElementById('gridViewBtn').classList.toggle('active', v==='grid');
+  document.getElementById('listViewBtn').classList.toggle('active', v==='list');
+  document.getElementById('gridWrapper').classList.toggle('list-view', v==='list');
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════
+function getFiltered() {
+  return DATA.filter(function(d) {
+    if (filters.diplome !== 'all' && d.diplome !== filters.diplome) return false;
+    if (filters.matiere !== 'all' && d.matiere !== filters.matiere) return false;
+    if (filters.zone !== 'all' && d.zone !== filters.zone) return false;
+    if (filters.year !== 'all' && d.year !== filters.year) return false;
+    if (filters.type === 'corrige' && !d.corrige) return false;
+    if (filters.type === 'sujet' && d.corrige) return false;
+    if (searchVal) {
+      var hay = [d.topic,d.desc,d.zone,d.year,d.exo,d.session,d.matiere,d.diplome].join(' ').toLowerCase();
+      if (!hay.includes(searchVal)) return false;
+    }
+    return true;
+  });
+}
+
+function mTag(m) {
+  var mp = {phychim:['tag-phychim','⚗️ Phys-Chimie'],physique:['tag-physique','⚡ Physique'],chimie:['tag-chimie','🧪 Chimie'],sciences:['tag-sciences','🔬 Sciences']};
+  var c = mp[m]||['tag-phychim',m];
+  return '<span class="tag '+c[0]+'">'+c[1]+'</span>';
+}
+function dTag(d) {
+  return d==='brevet'?'<span class="tag tag-brevet">📜 Brevet</span>':'<span class="tag tag-bac">🎓 BAC</span>';
+}
+function barCls(d) {
+  if (d.exo&&d.exo.includes('complet')) return 'bar-complet';
+  if (d.diplome==='brevet') return 'bar-brevet';
+  if (d.matiere==='physique') return 'bar-bac-physique';
+  if (d.matiere==='chimie') return 'bar-bac-chimie';
+  return 'bar-bac-phychim';
+}
+
+function cardHTML(d, delay) {
+  return '<div class="annale-card" style="animation-delay:'+delay+'s">'
+    +'<div class="card-top-bar '+barCls(d)+'"></div>'
+    +'<div class="card-header">'
+    +'<div class="card-tags">'+mTag(d.matiere)+dTag(d.diplome)+'<span class="tag tag-year">'+d.year+'</span><span class="tag tag-zone">📍 '+d.zone+'</span></div>'
+    +(d.pts?'<span class="card-pts">'+d.pts+'</span>':'')
+    +'</div>'
+    +'<div class="card-body">'
+    +'<div class="card-session">'+d.session+' · '+d.exo+'</div>'
+    +'<div class="card-title">'+d.topic+'</div>'
+    +'<div class="card-theme">'+d.desc+'</div>'
+    +'</div>'
+    +'<div class="card-footer">'
+    +'<button class="card-btn primary" onclick="openModal('+d.id+',\'sujet\')">'
+    +'<svg viewBox="0 0 24 24" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>Voir sujet</button>'
+    +(d.corrige
+      ?'<button class="card-btn corrige" onclick="openModal('+d.id+',\'corrige\')"><svg viewBox="0 0 24 24" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Corrigé</button>'
+      :'<button class="card-btn disabled">Corrigé N/D</button>'
+    )
+    +'</div></div>';
+}
+
+function render() {
+  var filtered = getFiltered();
+  document.getElementById('shownCount').textContent = filtered.length;
+  var wrapper = document.getElementById('gridWrapper');
+  var emptyEl = document.getElementById('emptyState');
+  if (!filtered.length) { wrapper.innerHTML=''; emptyEl.classList.add('vis'); return; }
+  emptyEl.classList.remove('vis');
+
+  // Grouper
+  var groups = {};
+  filtered.forEach(function(d) {
+    var k = d.diplome+'-'+d.year+'-'+d.zone;
+    if (!groups[k]) groups[k]={diplome:d.diplome,year:d.year,zone:d.zone,items:[]};
+    groups[k].items.push(d);
+  });
+  var sorted = Object.values(groups).sort(function(a,b){
+    if (a.diplome!==b.diplome) return a.diplome==='bac'?-1:1;
+    if (b.year!==a.year) return b.year.localeCompare(a.year);
+    return a.zone.localeCompare(b.zone);
+  });
+
+  var html=''; var n=0;
+  var icons = {Polynésie:'🌴',Asie:'🌏',Antilles:'🏝️',Métropole:'🇫🇷'};
+  sorted.forEach(function(g) {
+    var lbl = g.diplome==='brevet'?'Brevet Sciences':'BAC Phys-Chimie';
+    html += '<div class="section-header">'
+      +'<div class="section-header-title">'+(icons[g.zone]||'📍')+' '+lbl+' '+g.year+' — '+g.zone+'</div>'
+      +'<div class="section-header-line"></div>'
+      +'<div class="section-header-count">'+g.items.length+' doc'+(g.items.length>1?'s':'')+'</div>'
+      +'</div><div class="annales-grid">';
+    g.items.forEach(function(d){ html+=cardHTML(d,(n%6)*0.06); n++; });
+    html+='</div>';
+  });
+  wrapper.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════
+// MODAL
+// ═══════════════════════════════════════════════════════
+function openModal(id, type) {
+  var d = DATA.find(function(x){ return x.id===id; });
+  if (!d) return;
+  var filename = type==='corrige'?d.corrige:d.sujet;
+  if (!filename) return;
+  var filtered = getFiltered();
+  modalItems=[];
+  filtered.forEach(function(item){
+    if(item.sujet) modalItems.push({id:item.id,type:'sujet',filename:item.sujet,d:item});
+    if(item.corrige) modalItems.push({id:item.id,type:'corrige',filename:item.corrige,d:item});
+  });
+  modalIdx = modalItems.findIndex(function(m){ return m.id===id&&m.type===type; });
+  if(modalIdx<0) modalIdx=0;
+  showModalItem(modalItems[modalIdx]);
+  document.getElementById('modalOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function showModalItem(item) {
+  var d=item.d;
+  var url=BASE+encodeURIComponent(item.filename);
+  document.getElementById('modalTags').innerHTML=mTag(d.matiere)+dTag(d.diplome)+'<span class="tag tag-year">'+d.year+'</span>';
+  document.getElementById('modalTitle').textContent=d.topic+' · '+(item.type==='corrige'?'✅ Corrigé':'📄 Sujet');
+  document.getElementById('modalIframe').src=url;
+  document.getElementById('modalDl').href=url;
+  document.getElementById('modalInfo').textContent=d.zone+' · '+d.session+' · '+d.exo+(d.pts?' · '+d.pts:'');
+  document.getElementById('modalPrev').disabled=modalIdx===0;
+  document.getElementById('modalNext').disabled=modalIdx===modalItems.length-1;
+}
+function modalNav(dir) {
+  var next=modalIdx+dir;
+  if(next<0||next>=modalItems.length) return;
+  modalIdx=next; showModalItem(modalItems[modalIdx]);
+}
+function closeModal(e){ if(e&&e.target!==document.getElementById('modalOverlay')) return; closeModalDirect(); }
+function closeModalDirect(){
+  document.getElementById('modalOverlay').classList.remove('open');
+  document.getElementById('modalIframe').src='';
+  document.body.style.overflow='';
+}
+document.addEventListener('keydown',function(e){
+  if(!document.getElementById('modalOverlay').classList.contains('open')) return;
+  if(e.key==='Escape') closeModalDirect();
+  if(e.key==='ArrowLeft') modalNav(-1);
+  if(e.key==='ArrowRight') modalNav(1);
+});
+</script>
+</body>
+</html>
