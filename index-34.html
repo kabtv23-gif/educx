@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EDUCX — La Science à ta portée</title>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+<script src="https://js.stripe.com/v3/"></script>
+
+<script>
+// ════════════════════════════════════════════
+// FIREBASE INIT
+// ════════════════════════════════════════════
+firebase.initializeApp({
+  apiKey:"AIzaSyAETqaW3hamdSngwEbQt_d9JctyDtO3ZHU",
+  authDomain:"educx-d452f.firebaseapp.com",
+  databaseURL:"https://educx-d452f-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId:"educx-d452f",
+  storageBucket:"educx-d452f.firebasestorage.app",
+  messagingSenderId:"1033893126346",
+  appId:"1:1033893126346:web:7e2513e29d52c16d999433"
+});
+var fbAuth = firebase.auth();
+var fbDb   = firebase.database();
+
+// ════════════════════════════════════════════
+// ÉTAT GLOBAL
+// ════════════════════════════════════════════
+var currentUser  = null;  // null = déconnecté
+var _authReady   = false; // true quand Firebase a répondu
+var _pendingPage = null;  // page à afficher après connexion
+var selectedPlan = 'gratuit';
+var currentFilter = 'all';
+
+// ════════════════════════════════════════════
+// ÉCOUTE AUTH — UNE SEULE FOIS
+// ════════════════════════════════════════════
+fbAuth.onAuthStateChanged(function(user) {
+  if (user) {
+    fbDb.ref('users/' + user.uid).once('value').then(function(snap) {
+      currentUser = snap.exists() ? snap.val() : {
+        name:  user.displayName || user.email.split('@')[0],
+        email: user.email,
+        plan:  'gratuit',
+        level: '2nde'
+      };
+      currentUser.uid   = user.uid;
+      currentUser.email = user.email;
+      _authReady = true;
+      updateNav();
+
+      if (_pendingPage) {
+        // Après login/inscription explicite
+        var pg = _pendingPage;
+        _pendingPage = null;
+        showPage(pg);
+      } else {
+        // Déjà connecté au chargement de la page :
+        // Si on est sur home/connexion/inscription → aller au dashboard directement
+        var active = document.querySelector('.page.active');
+        var onAuthPage = !active
+          || active.id === 'page-home'
+          || active.id === 'page-connexion'
+          || active.id === 'page-inscription';
+        if (onAuthPage) {
+          showPage('dashboard');
+        }
+      }
+    }).catch(function() {
+      _authReady = true;
+    });
+  } else {
+    currentUser  = null;
+    _authReady   = true;
+    _pendingPage = null;
+    updateNav();
+    // Si on était sur une page protégée, renvoyer à home
+    var active = document.querySelector('.page.active');
+    if (active && (active.id === 'page-dashboard' || active.id === 'page-profil')) {
+      showPage('home');
+    }
+  }
+});
+
+// ════════════════════════════════════════════
+// AUTH — CONNEXION
+// ════════════════════════════════════════════
+function loginFirebase() {
+  var email = document.getElementById('login-email').value.trim();
+  var pass  = document.getElementById('login-pass').value;
+  if (!email || !pass) { showToast('⚠️ Remplis tous les champs', 2500); return; }
+  var btn = document.querySelector('#page-connexion .form-submit');
+  if (btn) { btn.textContent = '⏳ Connexion…'; btn.disabled = true; }
+  fbAuth.signInWithEmailAndPassword(email, pass)
+    .then(function() {
+      if (!_pendingPage) _pendingPage = 'dashboard';
+      showToast('👋 Bon retour !', 2000);
+      if (btn) { btn.textContent = 'Se connecter →'; btn.disabled = false; }
+    })
+    .catch(function(e) {
+      showToast('❌ Email ou mot de passe incorrect', 3500);
+      if (btn) { btn.textContent = 'Se connecter →'; btn.disabled = false; }
+    });
+}
+
+function loginGoogle() {
+  var provider = new firebase.auth.GoogleAuthProvider();
+  fbAuth.signInWithPopup(provider)
+    .then(function(result) {
+      var user = result.user;
+      _pendingPage = 'dashboard';
+      return fbDb.ref('users/' + user.uid).once('value').then(function(snap) {
+        if (!snap.exists()) {
+          return fbDb.ref('users/' + user.uid).set({
+            name: user.displayName, email: user.email,
+            level: '2nde', plan: 'gratuit',
+            createdAt: new Date().toISOString()
+          });
+        }
+      });
+    })
+    .then(function() {
+      showToast('👋 Connecté avec Google !', 2000);
+    })
+    .catch(function(e) {
+      if (e.code !== 'auth/popup-closed-by-user')
+        showToast('❌ Erreur Google : ' + e.message, 3500);
+    });
+}
+
+// ════════════════════════════════════════════
+// AUTH — INSCRIPTION
+// ════════════════════════════════════════════
+function registerFirebase() {
+  var name  = document.getElementById('reg-name').value.trim();
+  var email = document.getElementById('reg-email').value.trim();
+  var pass  = document.getElementById('reg-pass').value;
+  var level = document.getElementById('reg-level').value;
+  if (!name||!email||!pass||!level) { showToast('⚠️ Remplis tous les champs', 2500); return; }
+  if (pass.length < 6) { showToast('⚠️ Mot de passe trop court (6 min)', 2500); return; }
+  var btn = document.querySelector('#page-inscription .form-submit');
+  if (btn) { btn.textContent = '⏳ Création…'; btn.disabled = true; }
+  fbAuth.createUserWithEmailAndPassword(email, pass)
+    .then(function(cred) {
+      _pendingPage = 'dashboard';
+      return cred.user.updateProfile({ displayName: name }).then(function() {
+        return cred.user.sendEmailVerification().then(function() {
+          return fbDb.ref('users/' + cred.user.uid).set({
+            name: name, email: email, level: level,
+            plan: selectedPlan || 'gratuit',
+            createdAt: new Date().toISOString()
+          });
+        });
+      });
+    })
+    .then(function() {
+      showToast('✅ Compte créé ! Vérifie ton email.', 4000);
+      if (btn) { btn.textContent = 'Créer mon compte →'; btn.disabled = false; }
+      if (selectedPlan === 'premium') startStripeCheckout(email);
+    })
+    .catch(function(e) {
+      var msg = e.code === 'auth/email-already-in-use' ? '❌ Email déjà utilisé'
+              : e.code === 'auth/invalid-email'        ? '❌ Email invalide'
+              : '❌ ' + e.message;
+      showToast(msg, 4000);
+      if (btn) { btn.textContent = 'Créer mon compte →'; btn.disabled = false; }
+    });
+}
+
+function resetPassword() {
+  var email = document.getElementById('login-email').value.trim();
+  if (!email) { showToast('⚠️ Entre ton email d\'abord', 2500); return; }
+  fbAuth.sendPasswordResetEmail(email)
+    .then(function() { showToast('📧 Email envoyé à ' + email, 4000); })
+    .catch(function() { showToast('❌ Email introuvable', 3000); });
+}
+
+function logoutFirebase() {
+  fbAuth.signOut().then(function() {
+    currentUser = null;
+    _authReady  = true;
+    showToast('👋 À bientôt !', 2000);
+    showPage('home');
+  });
+}
+
+function selectPlan(plan) {
+  selectedPlan = plan;
+  document.getElementById('plan-gratuit').classList.toggle('selected', plan==='gratuit');
+  document.getElementById('plan-premium').classList.toggle('selected', plan==='premium');
+}
+</script>
+
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg:#07080f; --surface:#0f1120; --surface2:#171929;
+  --border:rgba(255,255,255,0.08);
+  --accent:#5b6ef8; --accent2:#f85b9e; --accent3:#5bf8c4;
+  --gold:#f8c25b; --text:#e8eaf6; --muted:#6b7280; --radius:16px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:16px;line-height:1.6;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:9999;opacity:0.4;}
+.blob{position:fixed;border-radius:50%;filter:blur(120px);pointer-events:none;z-index:0;opacity:0.18;}
+.blob-1{width:600px;height:600px;background:var(--accent);top:-200px;left:-200px;}
+.blob-2{width:500px;height:500px;background:var(--accent2);bottom:-150px;right:-150px;}
+.blob-3{width:400px;height:400px;background:var(--accent3);top:40%;left:40%;}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 40px;height:70px;display:flex;align-items:center;justify-content:space-between;background:rgba(7,8,15,0.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.6rem;letter-spacing:-1px;background:linear-gradient(135deg,var(--accent),var(--accent3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;cursor:pointer;}
+.nav-links{display:flex;gap:28px;align-items:center;}
+.nav-links a{color:var(--muted);text-decoration:none;font-size:0.88rem;font-weight:500;transition:color 0.2s;cursor:pointer;}
+.nav-links a:hover{color:var(--text);}
+.nav-cta{background:var(--accent)!important;color:#fff!important;padding:8px 20px;border-radius:50px;font-weight:700!important;}
+.nav-duel{background:rgba(248,91,158,0.12);color:#f85b9e!important;border:1px solid rgba(248,91,158,0.3);padding:6px 14px;border-radius:50px;font-weight:700!important;font-size:0.82rem!important;}
+.nav-ia{background:rgba(91,248,196,0.12);color:#5bf8c4!important;border:1px solid rgba(91,248,196,0.3);padding:6px 14px;border-radius:50px;font-weight:700!important;font-size:0.82rem!important;}
+.hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;background:transparent;border:none;padding:5px;}
+.hamburger span{width:22px;height:2px;background:var(--text);border-radius:2px;display:block;}
+@media(max-width:768px){.nav-links{display:none;}.hamburger{display:flex;}}
+
+/* PAGES */
+.page{display:none;position:relative;z-index:1;}
+.page.active{display:block;}
+
+/* PAGES INTÉGRÉES */
+.int-page{display:none;min-height:100vh;position:relative;z-index:1;padding-top:70px;}
+#intBackBtn{position:fixed;top:76px;left:14px;z-index:200;background:rgba(7,8,15,0.92);border:1px solid rgba(255,255,255,0.12);border-radius:50px;padding:8px 18px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.82rem;font-weight:600;cursor:pointer;backdrop-filter:blur(12px);display:none;align-items:center;gap:7px;transition:all 0.2s;}
+#intBackBtn:hover{background:rgba(91,110,248,0.2);border-color:var(--accent);color:var(--accent);}
+
+/* HERO */
+#home{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:100px 24px 60px;}
+.badge{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border:1px solid rgba(91,248,196,0.3);border-radius:50px;font-size:0.78rem;font-weight:500;color:var(--accent3);margin-bottom:28px;background:rgba(91,248,196,0.06);animation:fadeUp 0.6s ease both;}
+.badge::before{content:'✦';}
+h1{font-family:'Syne',sans-serif;font-size:clamp(2.8rem,7vw,5.5rem);font-weight:800;line-height:1.05;letter-spacing:-2px;margin-bottom:22px;animation:fadeUp 0.6s 0.1s ease both;}
+h1 span.grad{background:linear-gradient(90deg,var(--accent),var(--accent2),var(--accent3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hero-sub{max-width:560px;color:var(--muted);font-size:1.05rem;margin:0 auto 40px;line-height:1.7;animation:fadeUp 0.6s 0.2s ease both;}
+.hero-btns{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;animation:fadeUp 0.6s 0.3s ease both;}
+.stats-bar{display:flex;gap:44px;flex-wrap:wrap;justify-content:center;padding:40px 24px 0;animation:fadeUp 0.6s 0.4s ease both;}
+.stat{text-align:center;}
+.stat-num{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;}
+.stat-label{font-size:0.78rem;color:var(--muted);margin-top:2px;}
+.scroll-hint{position:absolute;bottom:36px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--muted);font-size:0.72rem;letter-spacing:1.5px;text-transform:uppercase;animation:bob 2.5s ease-in-out infinite;}
+
+/* BOUTONS */
+.btn-primary{background:linear-gradient(135deg,var(--accent),#7c3aed);color:#fff;border:none;padding:13px 30px;border-radius:50px;font-family:'DM Sans',sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;box-shadow:0 4px 20px rgba(91,110,248,0.35);display:inline-block;text-decoration:none;}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 10px 32px rgba(91,110,248,0.5);}
+.btn-ghost{background:transparent;color:var(--text);border:1px solid var(--border);padding:13px 30px;border-radius:50px;font-family:'DM Sans',sans-serif;font-size:0.95rem;font-weight:500;cursor:pointer;transition:all 0.2s;display:inline-block;text-decoration:none;}
+.btn-ghost:hover{border-color:var(--accent);background:rgba(91,110,248,0.07);}
+
+/* SECTION */
+.section{max-width:1100px;margin:0 auto;padding:80px 24px;}
+.section-label{font-size:0.72rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--accent);margin-bottom:10px;}
+.section-title{font-family:'Syne',sans-serif;font-size:clamp(1.8rem,4vw,2.6rem);font-weight:800;letter-spacing:-1px;margin-bottom:44px;line-height:1.15;}
+
+/* MATIÈRES */
+.subjects-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:18px;}
+.subject-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px;cursor:pointer;transition:transform 0.25s,box-shadow 0.25s;position:relative;overflow:hidden;}
+.subject-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--card-color,var(--accent));}
+.subject-card:hover{transform:translateY(-4px);box-shadow:0 20px 40px rgba(0,0,0,0.35);}
+.subject-icon{font-size:2.4rem;margin-bottom:14px;display:block;}
+.subject-title{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:700;margin-bottom:8px;}
+.subject-desc{color:var(--muted);font-size:0.88rem;margin-bottom:16px;line-height:1.6;}
+.subject-levels{display:flex;gap:7px;flex-wrap:wrap;}
+.level-tag{padding:3px 10px;border-radius:50px;font-size:0.7rem;font-weight:600;background:rgba(255,255,255,0.06);color:var(--muted);border:1px solid var(--border);}
+
+/* COURS */
+#page-cours{padding-top:80px;min-height:100vh;}
+.filter-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:28px;}
+.filter-btn{padding:8px 18px;border-radius:50px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:0.84rem;font-weight:500;cursor:pointer;transition:all 0.2s;}
+.filter-btn.active,.filter-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent);}
+.cours-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:18px;}
+.cours-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:transform 0.25s,box-shadow 0.25s;}
+.cours-card:hover{transform:translateY(-4px);box-shadow:0 20px 40px rgba(0,0,0,0.35);}
+.cours-thumb{height:130px;display:flex;align-items:center;justify-content:center;font-size:3.5rem;}
+.cours-body{padding:18px;}
+.cours-meta{display:flex;gap:8px;margin-bottom:9px;flex-wrap:wrap;}
+.tag{padding:2px 10px;border-radius:50px;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;}
+.tag-maths{background:rgba(91,110,248,0.15);color:var(--accent);}
+.tag-physique{background:rgba(248,91,158,0.15);color:var(--accent2);}
+.tag-chimie{background:rgba(91,248,196,0.15);color:var(--accent3);}
+.tag-college{background:rgba(248,194,91,0.12);color:var(--gold);}
+.tag-lycee{background:rgba(180,91,248,0.12);color:#b45bf8;}
+.cours-title{font-family:'Syne',sans-serif;font-weight:700;font-size:0.96rem;margin-bottom:7px;}
+.cours-desc{color:var(--muted);font-size:0.82rem;margin-bottom:13px;line-height:1.5;}
+.cours-footer{display:flex;align-items:center;justify-content:space-between;}
+.cours-duration{color:var(--muted);font-size:0.76rem;}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);z-index:200;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface2);border:1px solid rgba(255,255,255,0.1);border-radius:24px;max-width:680px;width:100%;max-height:88vh;overflow-y:auto;padding:36px;position:relative;animation:scaleIn 0.25s ease;}
+.modal-close{position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.08);border:none;color:var(--text);width:32px;height:32px;border-radius:50%;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.lesson-list{display:flex;flex-direction:column;gap:10px;margin-top:18px;}
+.lesson-item{display:flex;align-items:center;gap:13px;padding:11px 14px;background:var(--surface);border-radius:11px;border:1px solid var(--border);cursor:pointer;transition:all 0.2s;}
+.lesson-item:hover{border-color:var(--accent);background:rgba(91,110,248,0.05);}
+.lesson-num{width:28px;height:28px;border-radius:50%;background:rgba(91,110,248,0.15);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:0.76rem;font-weight:700;flex-shrink:0;}
+.lesson-name{font-weight:500;font-size:0.87rem;flex:1;}
+.lesson-duration{color:var(--muted);font-size:0.74rem;}
+.modal-action{margin-top:22px;display:flex;gap:10px;flex-wrap:wrap;}
+
+/* TARIFS */
+#page-tarifs{padding-top:80px;min-height:100vh;}
+.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(275px,1fr));gap:22px;max-width:780px;margin:0 auto;}
+.pricing-card{background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:34px;position:relative;transition:transform 0.25s;}
+.pricing-card:hover{transform:translateY(-4px);}
+.pricing-card.featured{border-color:var(--accent);background:linear-gradient(145deg,rgba(91,110,248,0.08),var(--surface));box-shadow:0 0 0 1px var(--accent),0 24px 48px rgba(91,110,248,0.15);}
+.pricing-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:4px 16px;border-radius:50px;font-size:0.7rem;font-weight:800;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;}
+.pricing-name{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:700;margin-bottom:7px;}
+.pricing-price{font-family:'Syne',sans-serif;font-size:3rem;font-weight:800;line-height:1;margin:13px 0 4px;}
+.pricing-price sup{font-size:1.2rem;vertical-align:top;margin-top:8px;display:inline-block;}
+.pricing-period{color:var(--muted);font-size:0.83rem;margin-bottom:25px;}
+.pricing-features{list-style:none;display:flex;flex-direction:column;gap:11px;margin-bottom:26px;}
+.pricing-features li{display:flex;align-items:center;gap:9px;font-size:0.87rem;}
+.pricing-features li::before{content:'✓';width:20px;height:20px;border-radius:50%;background:rgba(91,248,196,0.15);color:var(--accent3);font-size:0.68rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:800;}
+.pricing-features li.no::before{content:'✕';background:rgba(255,255,255,0.05);color:var(--muted);}
+.pricing-features li.no{color:var(--muted);}
+
+/* AUTH */
+#page-inscription,#page-connexion{padding-top:80px;min-height:100vh;display:flex;align-items:center;justify-content:center;}
+#page-inscription.active,#page-connexion.active{display:flex;}
+.auth-container{max-width:440px;width:100%;padding:20px;}
+.auth-card{background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:38px;}
+.auth-title{font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;margin-bottom:7px;letter-spacing:-0.5px;}
+.auth-sub{color:var(--muted);font-size:0.88rem;margin-bottom:28px;}
+.form-group{margin-bottom:18px;}
+.form-label{display:block;font-size:0.8rem;font-weight:700;color:var(--muted);margin-bottom:7px;letter-spacing:0.5px;text-transform:uppercase;}
+.form-input,.form-select{width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;padding:12px 15px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.93rem;outline:none;transition:border-color 0.2s;}
+.form-input:focus,.form-select:focus{border-color:var(--accent);}
+.form-select option{background:var(--surface2);}
+.form-submit{width:100%;background:linear-gradient(135deg,var(--accent),#7c3aed);color:#fff;border:none;border-radius:50px;padding:14px;font-family:'DM Sans',sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;margin-top:6px;box-shadow:0 4px 20px rgba(91,110,248,0.3);}
+.form-submit:hover{transform:translateY(-1px);box-shadow:0 8px 30px rgba(91,110,248,0.5);}
+.form-submit:disabled{opacity:0.5;transform:none;cursor:not-allowed;}
+.auth-switch{text-align:center;margin-top:20px;color:var(--muted);font-size:0.87rem;}
+.auth-switch a{color:var(--accent);cursor:pointer;}
+.plan-selector{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:7px;}
+.plan-option{border:1.5px solid var(--border);border-radius:12px;padding:13px;cursor:pointer;transition:all 0.2s;position:relative;}
+.plan-option.selected{border-color:var(--accent);background:rgba(91,110,248,0.08);}
+.plan-name{font-weight:700;font-size:0.88rem;}
+.plan-price{font-size:0.76rem;color:var(--muted);margin-top:2px;}
+.plan-tag{position:absolute;top:-8px;right:8px;background:var(--gold);color:#000;font-size:0.58rem;font-weight:800;padding:2px 8px;border-radius:50px;text-transform:uppercase;}
+.google-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#1f2937;border:none;padding:12px 20px;border-radius:50px;font-size:0.92rem;font-weight:700;cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;}
+.google-btn:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,0,0,0.2);}
+.auth-sep{display:flex;align-items:center;gap:10px;margin:14px 0;}
+.auth-sep::before,.auth-sep::after{content:'';flex:1;height:1px;background:var(--border);}
+.auth-sep span{color:var(--muted);font-size:0.77rem;}
+
+/* DASHBOARD */
+#page-dashboard{padding-top:70px;min-height:100vh;}
+.dash-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:32px;flex-wrap:wrap;gap:12px;}
+.dash-welcome{font-family:'Syne',sans-serif;font-size:1.75rem;font-weight:800;}
+.dash-plan{padding:6px 14px;border-radius:50px;font-size:0.76rem;font-weight:700;background:rgba(91,110,248,0.12);color:var(--accent);border:1px solid rgba(91,110,248,0.25);}
+.progress-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:13px;margin-bottom:32px;}
+.progress-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+.progress-card-label{color:var(--muted);font-size:0.77rem;margin-bottom:7px;}
+.progress-card-value{font-family:'Syne',sans-serif;font-size:1.9rem;font-weight:800;}
+.progress-bar-wrap{margin-top:9px;}
+.progress-bar{height:4px;background:rgba(255,255,255,0.07);border-radius:4px;overflow:hidden;}
+.progress-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--accent),var(--accent3));}
+.shortcuts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:11px;margin-bottom:32px;}
+.sc-card{background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:18px;text-align:center;cursor:pointer;transition:all 0.22s;display:block;text-decoration:none;color:var(--text);}
+.sc-card:hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(0,0,0,0.28);}
+.sc-icon{font-size:1.8rem;margin-bottom:7px;}
+.sc-label{font-family:'Syne',sans-serif;font-weight:700;font-size:0.8rem;}
+.sc-sub{color:var(--muted);font-size:0.65rem;margin-top:2px;}
+
+/* TOAST */
+.toast{position:fixed;bottom:26px;right:26px;background:var(--surface2);border:1px solid var(--accent);border-radius:12px;padding:13px 19px;font-size:0.87rem;font-weight:500;z-index:9000;transform:translateY(70px);opacity:0;transition:all 0.28s ease;max-width:290px;box-shadow:0 8px 22px rgba(0,0,0,0.4);}
+.toast.show{transform:translateY(0);opacity:1;}
+
+/* FOOTER */
+footer{border-top:1px solid var(--border);padding:34px 24px;text-align:center;color:var(--muted);font-size:0.8rem;position:relative;z-index:1;}
+footer strong{color:var(--text);}
+footer a{color:var(--accent);text-decoration:none;}
+
+/* DRAWER */
+.dr-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:998;}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:275px;background:var(--surface);border-left:1px solid var(--border);z-index:999;transform:translateX(110%);transition:transform 0.3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;}
+.drawer.open{transform:translateX(0);}
+.dr-overlay.open{display:block;}
+.dr-head{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.dr-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.15rem;background:linear-gradient(135deg,var(--accent),var(--accent3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.dr-close{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem;width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;}
+.dr-profil{padding:13px 20px;border-bottom:1px solid var(--border);cursor:pointer;}
+.dr-profil:hover{background:rgba(255,255,255,0.03);}
+.dr-name{font-family:'Syne',sans-serif;font-weight:700;font-size:0.88rem;}
+.dr-email{font-size:0.7rem;color:var(--muted);margin-top:2px;}
+.dr-body{flex:1;overflow-y:auto;padding:6px 0;}
+.dr-btn{display:flex;align-items:center;gap:10px;padding:11px 20px;width:100%;background:transparent;border:none;color:var(--text);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:0.86rem;text-align:left;transition:background 0.15s;}
+.dr-btn:hover{background:rgba(255,255,255,0.04);}
+.dr-btn.accent{color:var(--accent);}
+.dr-btn.green{color:var(--accent3);}
+.dr-btn.pink{color:var(--accent2);}
+.dr-btn.danger{color:var(--accent2);}
+.dr-sep{height:1px;background:var(--border);margin:6px 20px;}
+.dr-foot{padding:10px 20px;border-top:1px solid var(--border);font-size:0.67rem;color:var(--muted);text-align:center;}
+.dr-foot a{color:var(--accent);text-decoration:none;}
+
+/* ANIMATIONS */
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:none;}}
+@keyframes scaleIn{from{opacity:0;transform:scale(0.95);}to{opacity:1;transform:scale(1);}}
+@keyframes bob{0%,100%{transform:translateX(-50%) translateY(0);}50%{transform:translateX(-50%) translateY(7px);}}
+</style>
+</head>
+<body>
+
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+<div class="blob blob-3"></div>
+<div class="toast" id="toast"></div>
+
+<!-- MODAL COURS -->
+<div class="modal-overlay" id="coursModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<!-- DRAWER OVERLAY -->
+<div class="dr-overlay" id="drOverlay" onclick="closeDrawer()"></div>
+
+<!-- DRAWER -->
+<div class="drawer" id="drawer">
+  <div class="dr-head">
+    <span class="dr-logo">EDUCX</span>
+    <button class="dr-close" onclick="closeDrawer()">✕</button>
+  </div>
+  <div class="dr-profil" onclick="closeDrawer();if(currentUser)showPage('dashboard');else showPage('connexion')">
+    <div class="dr-name" id="drName">Se connecter</div>
+    <div class="dr-email" id="drEmail">Crée ton compte gratuitement</div>
+  </div>
+  <div class="dr-body">
+    <button class="dr-btn" onclick="showPage('home');closeDrawer()">🏠 Accueil</button>
+    <button class="dr-btn" onclick="showPage('cours');closeDrawer()">📚 Cours</button>
+    <button class="dr-btn accent" onclick="showPage('cours-mega');closeDrawer()">📐 Bibliothèque Maths</button>
+    <button class="dr-btn pink" onclick="showPage('cours-pc');closeDrawer()">⚗️ Physique-Chimie</button>
+    <button class="dr-btn pink" onclick="showPage('match');closeDrawer()">⚔️ Match en ligne</button>
+    <button class="dr-btn green" onclick="showPage('ia');closeDrawer()">🧠 Tuteur IA</button>
+    <button class="dr-btn" onclick="showPage('tarifs');closeDrawer()">💰 Tarifs</button>
+    <div class="dr-sep"></div>
+    <button class="dr-btn accent" id="drDashBtn" style="display:none" onclick="showPage('dashboard');closeDrawer()">📊 Mon dashboard</button>
+    <button class="dr-btn danger" id="drLogoutBtn" style="display:none" onclick="logoutFirebase()">🚪 Déconnexion</button>
+    <button class="dr-btn accent" id="drLoginBtn" onclick="showPage('connexion');closeDrawer()">🔑 Se connecter</button>
+    <button class="dr-btn green"  id="drRegBtn"   onclick="showPage('inscription');closeDrawer()">✨ S'inscrire</button>
+  </div>
+  <div class="dr-foot">EDUCX · <a href="/cdn-cgi/l/email-protection#b6d3d2c3d5ce98d5d9d8c2d7d5c2f6d1dbd7dfda98d5d9db">Contact</a></div>
+</div>
+
+<!-- BOUTON RETOUR pages intégrées -->
+<button id="intBackBtn" onclick="showPage('home')">← Accueil</button>
+
+<!-- NAV -->
+<nav>
+  <div class="logo" onclick="showPage('home')">EDUCX</div>
+  <div class="nav-links">
+    <a onclick="showPage('cours')">Cours</a>
+    <a onclick="showPage('tarifs')">Tarifs</a>
+    <a onclick="showPage('cours-mega')" style="color:var(--accent);background:rgba(91,110,248,0.08);border:1px solid rgba(91,110,248,0.25);padding:6px 13px;border-radius:50px;font-size:0.78rem;font-weight:700">📚 Bibliothèque</a>
+    <a onclick="showPage('match')" class="nav-duel">⚔️ Match</a>
+    <a onclick="showPage('ia')" class="nav-ia">🧠 IA</a>
+    <a onclick="showPage('connexion')" id="nav-login">Connexion</a>
+    <a class="nav-cta" onclick="showPage('inscription')">Commencer</a>
+  </div>
+  <button class="hamburger" onclick="openDrawer()">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<!-- ═══════════ PAGE HOME ═══════════ -->
+<div class="page active" id="page-home">
+  <section id="home">
+    <div class="badge">Plateforme éducative française — Collège & Lycée</div>
+    <h1>La science,<br><span class="grad">enfin compréhensible.</span></h1>
+    <p class="hero-sub">Maths, Physique, Chimie — du collège au lycée. Cours clairs, exercices corrigés, tuteur IA 24h/24. Commence gratuitement.</p>
+    <div class="hero-btns">
+      <button class="btn-primary" onclick="showPage('inscription')">🚀 Essai gratuit 1 mois</button>
+      <button class="btn-ghost" onclick="showPage('cours')">Voir les cours →</button>
+    </div>
+    <div class="stats-bar">
+      <div class="stat"><div class="stat-num">300+</div><div class="stat-label">Cours disponibles</div></div>
+      <div class="stat"><div class="stat-num">3</div><div class="stat-label">Matières</div></div>
+      <div class="stat"><div class="stat-num">6e→Term</div><div class="stat-label">Niveaux couverts</div></div>
+      <div class="stat"><div class="stat-num">0€</div><div class="stat-label">Pour commencer</div></div>
+    </div>
+    <div class="scroll-hint"><span>↓</span>Découvrir</div>
+  </section>
+
+  <div class="section">
+    <div class="section-label">Matières</div>
+    <h2 class="section-title">Trois disciplines,<br>tous les niveaux.</h2>
+    <div class="subjects-grid">
+      <div class="subject-card" style="--card-color:var(--accent)" onclick="filterAndShow('maths')">
+        <span class="subject-icon">∑</span>
+        <div class="subject-title">Mathématiques</div>
+        <p class="subject-desc">Fractions, équations, fonctions, dérivation, intégrales — toute la progression de la 6ème à la Terminale.</p>
+        <div class="subject-levels"><span class="level-tag">6ème</span><span class="level-tag">5ème</span><span class="level-tag">4ème</span><span class="level-tag">3ème</span><span class="level-tag">2nde</span><span class="level-tag">1ère</span><span class="level-tag">Terminale</span></div>
+      </div>
+      <div class="subject-card" style="--card-color:var(--accent2)" onclick="filterAndShow('physique')">
+        <span class="subject-icon">⚡</span>
+        <div class="subject-title">Physique</div>
+        <p class="subject-desc">Mécanique, électricité, optique, ondes — avec vidéos YouTube et exercices corrigés.</p>
+        <div class="subject-levels"><span class="level-tag">4ème</span><span class="level-tag">3ème</span><span class="level-tag">2nde</span><span class="level-tag">1ère</span><span class="level-tag">Terminale</span></div>
+      </div>
+      <div class="subject-card" style="--card-color:var(--accent3)" onclick="filterAndShow('chimie')">
+        <span class="subject-icon">⚗️</span>
+        <div class="subject-title">Chimie</div>
+        <p class="subject-desc">Atomes, réactions, solutions, acido-basicité, oxydoréduction — tout le programme officiel.</p>
+        <div class="subject-levels"><span class="level-tag">4ème</span><span class="level-tag">3ème</span><span class="level-tag">2nde</span><span class="level-tag">1ère</span><span class="level-tag">Terminale</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ PAGE COURS ═══════════ -->
+<div class="page" id="page-cours">
+  <section class="section">
+    <div class="section-label">Bibliothèque</div>
+    <h2 class="section-title" style="margin-bottom:22px">Tous les cours</h2>
+    <div class="filter-bar">
+      <button class="filter-btn active" onclick="filterCours('all',this)">Tout</button>
+      <button class="filter-btn" onclick="filterCours('maths',this)">📐 Maths</button>
+      <button class="filter-btn" onclick="filterCours('physique',this)">⚡ Physique</button>
+      <button class="filter-btn" onclick="filterCours('chimie',this)">🧪 Chimie</button>
+      <button class="filter-btn" onclick="filterCours('college',this)">🏫 Collège</button>
+      <button class="filter-btn" onclick="filterCours('lycee',this)">🎓 Lycée</button>
+    </div>
+    <div class="cours-grid" id="coursGrid"></div>
+  </section>
+</div>
+
+<!-- ═══════════ PAGE TARIFS ═══════════ -->
+<div class="page" id="page-tarifs">
+  <section class="section">
+    <div style="text-align:center;margin-bottom:52px">
+      <div class="section-label">Tarifs</div>
+      <h2 class="section-title" style="margin-bottom:13px">Simple et transparent.</h2>
+      <p style="color:var(--muted);max-width:460px;margin:0 auto;font-size:0.92rem">1 mois complet gratuit, sans carte bancaire.</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="pricing-card">
+        <div class="pricing-name">✨ Gratuit</div>
+        <div class="pricing-price">0€</div>
+        <div class="pricing-period">1 mois d'essai · Sans carte bancaire</div>
+        <ul class="pricing-features">
+          <li>Accès à tous les cours 1 mois</li>
+          <li>Maths, Physique, Chimie</li>
+          <li>Exercices & fiches</li>
+          <li>Match en ligne & Duel</li>
+          <li>Tuteur IA (limité)</li>
+          <li class="no">Corrigés bonus illimités</li>
+          <li class="no">Annales PDF</li>
+        </ul>
+        <button class="btn-primary" style="width:100%;border-radius:12px" onclick="showPage('inscription');selectPlan('gratuit')">Commencer gratuitement</button>
+      </div>
+      <div class="pricing-card featured">
+        <div class="pricing-badge">⭐ Recommandé</div>
+        <div class="pricing-name">🚀 Premium</div>
+        <div class="pricing-price"><sup>€</sup>10<span style="font-size:1.1rem">/mois</span></div>
+        <div class="pricing-period">Sans engagement · Résiliable en 1 clic</div>
+        <ul class="pricing-features">
+          <li>Tout du plan Gratuit</li>
+          <li>Accès illimité permanent</li>
+          <li>Tous les corrigés bonus</li>
+          <li>Annales BAC 2020-2025 + PDF</li>
+          <li>Tuteur IA illimité</li>
+          <li>Suivi de progression avancé</li>
+          <li>Support prioritaire</li>
+        </ul>
+        <button class="btn-primary" style="width:100%;border-radius:12px" id="btn-stripe-tarifs" onclick="startStripeCheckout()">🔒 Payer 10€/mois</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ═══════════ PAGE INSCRIPTION ═══════════ -->
+<div class="page" id="page-inscription">
+  <section style="min-height:100vh;display:flex;align-items:center;padding-top:80px">
+    <div class="auth-container">
+      <div class="auth-card">
+        <div class="auth-title">Créer mon compte</div>
+        <div class="auth-sub">Rejoins EDUCX — 1 mois gratuit, sans CB 🎉</div>
+        <div class="form-group">
+          <label class="form-label">Prénom & Nom</label>
+          <input class="form-input" id="reg-name" type="text" placeholder="Sophie Martin" autocomplete="name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-input" id="reg-email" type="email" placeholder="sophie@exemple.fr" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mot de passe</label>
+          <input class="form-input" id="reg-pass" type="password" placeholder="6 caractères minimum" autocomplete="new-password">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Niveau scolaire</label>
+          <select class="form-select" id="reg-level">
+            <option value="">Sélectionner…</option>
+            <option>6ème</option><option>5ème</option><option>4ème</option>
+            <option>3ème</option><option>2nde</option><option>1ère</option><option>Terminale</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mon plan</label>
+          <div class="plan-selector">
+            <label class="plan-option selected" id="plan-gratuit" onclick="selectPlan('gratuit')">
+              <div class="plan-name">✨ Gratuit</div><div class="plan-price">0€ · 1 mois</div>
+            </label>
+            <label class="plan-option" id="plan-premium" onclick="selectPlan('premium')">
+              <div class="plan-tag">⭐</div><div class="plan-name">🚀 Premium</div><div class="plan-price">10€/mois</div>
+            </label>
+          </div>
+        </div>
+        <button class="form-submit" onclick="registerFirebase()">Créer mon compte →</button>
+        <div class="auth-sep"><span>ou</span></div>
+        <button class="google-btn" onclick="loginGoogle()">
+          <img src="https://www.google.com/favicon.ico" width="18" height="18" alt="G"> Continuer avec Google
+        </button>
+        <div class="auth-switch">Déjà un compte ? <a onclick="showPage('connexion')">Se connecter</a></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ═══════════ PAGE CONNEXION ═══════════ -->
+<div class="page" id="page-connexion">
+  <section style="min-height:100vh;display:flex;align-items:center;padding-top:80px">
+    <div class="auth-container">
+      <div class="auth-card">
+        <div class="auth-title">Bon retour ! 👋</div>
+        <div class="auth-sub">Connecte-toi pour accéder à tes cours.</div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-input" id="login-email" type="email" placeholder="sophie@exemple.fr" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mot de passe</label>
+          <input class="form-input" id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <button class="form-submit" onclick="loginFirebase()">Se connecter →</button>
+        <div style="text-align:center;margin-top:11px">
+          <a onclick="resetPassword()" style="color:var(--muted);font-size:0.8rem;cursor:pointer;text-decoration:underline">🔑 Mot de passe oublié ?</a>
+        </div>
+        <div class="auth-sep"><span>ou</span></div>
+        <button class="google-btn" onclick="loginGoogle()">
+          <img src="https://www.google.com/favicon.ico" width="18" height="18" alt="G"> Continuer avec Google
+        </button>
+        <div class="auth-switch">Pas encore de compte ? <a onclick="showPage('inscription')">S'inscrire gratuitement</a></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ═══════════ PAGE DASHBOARD ═══════════ -->
+<div class="page" id="page-dashboard">
+  <section class="section" style="padding-top:96px">
+    <div class="dash-header">
+      <div>
+        <div style="color:var(--muted);font-size:0.83rem;margin-bottom:3px">Bonjour 👋</div>
+        <div class="dash-welcome" id="dashName">Élève</div>
+      </div>
+      <div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap">
+        <span class="dash-plan" id="dashPlan">Essai gratuit</span>
+        <button class="btn-ghost" style="padding:8px 16px;font-size:0.82rem" onclick="logoutFirebase()">Déconnexion</button>
+      </div>
+    </div>
+
+    <div class="progress-cards">
+      <div class="progress-card">
+        <div class="progress-card-label">Cours complétés</div>
+        <div class="progress-card-value">0</div>
+        <div class="progress-bar-wrap"><div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div></div>
+      </div>
+      <div class="progress-card">
+        <div class="progress-card-label">Heures d'étude</div>
+        <div class="progress-card-value">0h</div>
+        <div class="progress-bar-wrap"><div class="progress-bar"><div class="progress-fill" style="width:0%;background:linear-gradient(90deg,var(--accent2),var(--accent))"></div></div></div>
+      </div>
+      <div class="progress-card">
+        <div class="progress-card-label">Score moyen</div>
+        <div class="progress-card-value">—</div>
+        <div class="progress-bar-wrap"><div class="progress-bar"><div class="progress-fill" style="width:0%;background:linear-gradient(90deg,var(--gold),var(--accent3))"></div></div></div>
+      </div>
+    </div>
+
+    <div class="shortcuts-grid">
+      <div class="sc-card" onclick="showPage('cours-mega')" style="border-color:rgba(91,110,248,0.3)">
+        <div class="sc-icon">📐</div><div class="sc-label" style="color:var(--accent)">Maths</div><div class="sc-sub">Bibliothèque</div>
+      </div>
+      <div class="sc-card" onclick="showPage('cours-pc')" style="border-color:rgba(248,91,158,0.3)">
+        <div class="sc-icon">⚗️</div><div class="sc-label" style="color:var(--accent2)">Physique-Chimie</div><div class="sc-sub">Cours PC</div>
+      </div>
+      <div class="sc-card" onclick="showPage('ia')" style="border-color:rgba(91,248,196,0.3)">
+        <div class="sc-icon">🧠</div><div class="sc-label" style="color:var(--accent3)">Tuteur IA</div><div class="sc-sub">24h/24</div>
+      </div>
+      <div class="sc-card" onclick="showPage('match')" style="border-color:rgba(248,91,158,0.3)">
+        <div class="sc-icon">⚔️</div><div class="sc-label" style="color:var(--accent2)">Match</div><div class="sc-sub">Duel & Tournoi</div>
+      </div>
+      <div class="sc-card" onclick="showPage('cours')">
+        <div class="sc-icon">📚</div><div class="sc-label">Tous les cours</div><div class="sc-sub">Catalogue</div>
+      </div>
+      <div class="sc-card" onclick="showPage('tarifs')">
+        <div class="sc-icon">🚀</div><div class="sc-label">Premium</div><div class="sc-sub">10€/mois</div>
+      </div>
+    </div>
+
+    <div class="section-label" style="margin-bottom:17px">Cours recommandés</div>
+    <div class="cours-grid" id="dashCoursGrid"></div>
+  </section>
+</div>
+
+<footer>
+  <strong>EDUCX</strong> — La Science à ta portée 🚀<br>
+  <span style="margin-top:8px;display:block">© 2025 EDUCX · <a href="/cdn-cgi/l/email-protection#f4919081978cda979b9a80959780b49399959d98da979b99">Contact</a> · Réalisé par un étudiant en prépa PCSI</span>
+</footer>
+
+<!-- Pages intégrées (sans classe .page) -->
+<div id="page-cours-mega" class="int-page"></div>
+<div id="page-cours-pc"   class="int-page"></div>
+<div id="page-ia"         class="int-page"></div>
+<div id="page-match"      class="int-page"></div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+// ════════════════════════════════════════════════════════
+// DONNÉES COURS
+// ════════════════════════════════════════════════════════
+const COURS_DATA = [
+  {id:1, title:"Les fractions", desc:"Additionner, soustraire, multiplier et diviser des fractions.", matiere:"maths", niveau:"college", icon:"🔢", color:"rgba(91,110,248,0.12)", free:true,  duree:"2h30", lecons:["Introduction","Addition & soustraction","Multiplication","Division","Exercices"]},
+  {id:2, title:"Équations du 1er degré", desc:"Résoudre des équations à une inconnue pas à pas.", matiere:"maths", niveau:"college", icon:"➕", color:"rgba(91,110,248,0.12)", free:true,  duree:"3h",   lecons:["Définition","Résolution simple","Parenthèses","Inéquations","Problèmes"]},
+  {id:3, title:"Géométrie — Pythagore & Thalès", desc:"Théorèmes fondamentaux et applications.", matiere:"maths", niveau:"college", icon:"📐", color:"rgba(91,110,248,0.12)", free:true,  duree:"4h",   lecons:["Pythagore","Réciproque","Thalès","Agrandissements","Exercices brevet"]},
+  {id:4, title:"Trigonométrie 3ème", desc:"sin, cos, tan — calculs de côtés et d'angles.", matiere:"maths", niveau:"college", icon:"📏", color:"rgba(91,110,248,0.12)", free:false, duree:"3h",   lecons:["SOH-CAH-TOA","Valeurs remarquables","Calculer un côté","Calculer un angle","Problèmes"]},
+  {id:5, title:"Probabilités & Statistiques", desc:"Statistiques descriptives et calcul des probabilités.", matiere:"maths", niveau:"college", icon:"📊", color:"rgba(91,110,248,0.12)", free:false, duree:"2h",   lecons:["Vocabulaire","Expériences","Fréquences","Diagrammes","Médiane"]},
+  {id:6, title:"Fonctions du 2nd degré", desc:"Trinômes, paraboles, discriminant et racines.", matiere:"maths", niveau:"lycee",   icon:"∫",  color:"rgba(91,110,248,0.12)", free:true,  duree:"5h",   lecons:["Forme canonique","Discriminant Δ","Racines","Graphique","Applications"]},
+  {id:7, title:"Dérivation", desc:"Calculer et interpréter la dérivée d'une fonction.", matiere:"maths", niveau:"lycee",   icon:"f'", color:"rgba(91,110,248,0.12)", free:false, duree:"6h",   lecons:["Nombre dérivé","Dérivées usuelles","Règles","Variations","Tangente"]},
+  {id:8, title:"Suites numériques", desc:"Suites arithmétiques, géométriques et applications.", matiere:"maths", niveau:"lycee",   icon:"∑",  color:"rgba(91,110,248,0.12)", free:false, duree:"4h",   lecons:["Définitions","Arithmétiques","Géométriques","Récurrence","Exercices bac"]},
+  {id:9, title:"Intégrales", desc:"Primitives, intégrale de Riemann, aire algébrique.", matiere:"maths", niveau:"lycee",   icon:"∫",  color:"rgba(91,110,248,0.12)", free:false, duree:"5h",   lecons:["Primitives","Intégrale définie","Propriétés","Géométrie","Valeur moyenne"]},
+  {id:10,title:"Logarithme & Exponentielle", desc:"Fonctions ln et exp, propriétés, équations.", matiere:"maths", niveau:"lycee",   icon:"ln", color:"rgba(91,110,248,0.12)", free:false, duree:"5h",   lecons:["Exponentielle","Logarithme","Propriétés","Croissances","Équations"]},
+  {id:11,title:"Mécanique — Newton", desc:"Forces, mouvement, lois de Newton.", matiere:"physique", niveau:"college", icon:"⚡", color:"rgba(248,91,158,0.12)", free:true,  duree:"4h",   lecons:["Les forces","1ère loi","2ème loi","3ème loi","Énergie"]},
+  {id:12,title:"Électricité", desc:"Loi d'Ohm, circuits, puissance, Kirchhoff.", matiere:"physique", niveau:"college", icon:"🔌", color:"rgba(248,91,158,0.12)", free:true,  duree:"3h",   lecons:["Loi d'Ohm","Circuits série","Circuits parallèle","Kirchhoff","Puissance"]},
+  {id:13,title:"Optique — Lumière & Lentilles", desc:"Réflexion, réfraction, lentilles convergentes.", matiere:"physique", niveau:"lycee",   icon:"🔭", color:"rgba(248,91,158,0.12)", free:false, duree:"3h",   lecons:["Propagation","Réflexion","Réfraction","Lentilles","Images"]},
+  {id:14,title:"Ondes & Signaux", desc:"Nature des ondes, célérité, fréquence.", matiere:"physique", niveau:"lycee",   icon:"〰️",color:"rgba(248,91,158,0.12)", free:false, duree:"4h",   lecons:["Types d'ondes","Caractéristiques","Son et lumière","Doppler","Diffraction"]},
+  {id:15,title:"Atomes & Molécules", desc:"Structure de la matière — du collège au lycée.", matiere:"chimie", niveau:"college", icon:"⚛", color:"rgba(91,248,196,0.12)", free:true,  duree:"2h30", lecons:["Structure atome","Noyau & électrons","Ions","Tableau","Liaisons"]},
+  {id:16,title:"Réactions chimiques", desc:"Équations bilan, stœchiométrie, avancement.", matiere:"chimie", niveau:"lycee",   icon:"🧪", color:"rgba(91,248,196,0.12)", free:true,  duree:"4h",   lecons:["Équations bilan","Conservation","Stœchio","Avancement","Réactif limitant"]},
+  {id:17,title:"Solutions & pH", desc:"Concentration, acides, bases, titrages.", matiere:"chimie", niveau:"lycee",   icon:"💧", color:"rgba(91,248,196,0.12)", free:false, duree:"5h",   lecons:["Concentration","pH","Acides/bases","Ka & pKa","Titrages"]},
+  {id:18,title:"Oxydoréduction", desc:"Couples redox, piles électrochimiques.", matiere:"chimie", niveau:"lycee",   icon:"⚡", color:"rgba(91,248,196,0.12)", free:false, duree:"4h",   lecons:["Oxydation/réduction","Couples redox","Demi-équations","Piles","Électrolyse"]},
+  {id:19,title:"Chimie Organique", desc:"Groupes fonctionnels, nomenclature, estérification.", matiere:"chimie", niveau:"lycee",   icon:"🔬", color:"rgba(91,248,196,0.12)", free:false, duree:"5h",   lecons:["Groupes fonctionnels","Nomenclature","Estérification","Mécanismes","Spectro IR"]},
+];
+
+// ════════════════════════════════════════════════════════
+// NAVIGATION — UNE SEULE FONCTION, SIMPLE
+// ════════════════════════════════════════════════════════
+function showPage(id) {
+  var INTEGRATED = ['cours-mega','cours-pc','match','ia'];
+
+  // 1. Masquer toutes les pages normales
+  document.querySelectorAll('.page').forEach(function(p) {
+    p.classList.remove('active');
+  });
+
+  // 2. Masquer toutes les pages intégrées
+  INTEGRATED.forEach(function(n) {
+    var el = document.getElementById('page-' + n);
+    if (el) el.style.display = 'none';
+  });
+
+  // 3. Masquer le bouton retour
+  var backBtn = document.getElementById('intBackBtn');
+  if (backBtn) backBtn.style.display = 'none';
+
+  window.scrollTo(0, 0);
+
+  // 4. Page intégrée ?
+  if (INTEGRATED.indexOf(id) !== -1) {
+    // Vérifier connexion pour pages protégées
+    if (!_authReady) { _pendingPage = id; return; }
+    if (!currentUser) {
+      showToast('🔒 Connecte-toi pour accéder à cette section !', 3000);
+      showPage('connexion');
+      return;
+    }
+    var el = document.getElementById('page-' + id);
+    if (el) {
+      // Injecter le contenu si la page est vide
+      if (!el.dataset.loaded) {
+        el.innerHTML = buildIntegratedPage(id);
+        el.dataset.loaded = '1';
+        // Initialiser les grilles de cours immédiatement
+        setTimeout(function(){ initIntegratedGrid(id); }, 0);
+      }
+      el.style.display = 'block';
+    }
+    if (backBtn) backBtn.style.display = 'flex';
+    return;
+  }
+
+  // 5. Page dashboard — vérifier connexion
+  if (id === 'dashboard') {
+    if (!_authReady) { _pendingPage = 'dashboard'; return; }
+    if (!currentUser) { showPage('connexion'); return; }
+    var pg = document.getElementById('page-dashboard');
+    if (pg) pg.classList.add('active');
+    renderDashboard();
+    return;
+  }
+
+  // 6. Pages qui nécessitent connexion
+  if (id === 'profil' || id === 'settings') {
+    if (!_authReady) { _pendingPage = id; return; }
+    if (!currentUser) { showPage('connexion'); return; }
+  }
+
+  // 7. Page normale
+  var page = document.getElementById('page-' + id);
+  if (!page) {
+    document.getElementById('page-home').classList.add('active');
+    return;
+  }
+  page.classList.add('active');
+
+  // 8. Actions spécifiques
+  if (id === 'cours') renderCours();
+}
+
+// ════════════════════════════════════════════════════════
+// CONTENU PAGES INTÉGRÉES
+// ════════════════════════════════════════════════════════
+function buildIntegratedPage(id) {
+  if (id === 'cours-mega') {
+    return '<div style="padding:90px 24px 60px;max-width:1100px;margin:0 auto">'
+      + '<div style="font-size:0.72rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--accent);margin-bottom:10px">Bibliothèque</div>'
+      + '<h2 style="font-family:Syne,sans-serif;font-size:clamp(1.8rem,4vw,2.6rem);font-weight:800;letter-spacing:-1px;margin-bottom:36px">📐 Mathématiques</h2>'
+      + '<div class="filter-bar" style="margin-bottom:28px">'
+      + '<button class="filter-btn active" onclick="filterCours(\'maths\',this);document.querySelectorAll(\'#page-cours-mega .cours-grid\')[0].innerHTML=document.getElementById(\'coursGrid\').innerHTML">Tout Maths</button>'
+      + '<button class="filter-btn" onclick="filterCoursInteg(\'college\',this)">🏫 Collège</button>'
+      + '<button class="filter-btn" onclick="filterCoursInteg(\'lycee\',this)">🎓 Lycée</button>'
+      + '</div>'
+      + '<div class="cours-grid" id="coursGridMega"></div>'
+      + '</div>';
+  }
+  if (id === 'cours-pc') {
+    return '<div style="padding:90px 24px 60px;max-width:1100px;margin:0 auto">'
+      + '<div style="font-size:0.72rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--accent2);margin-bottom:10px">Bibliothèque</div>'
+      + '<h2 style="font-family:Syne,sans-serif;font-size:clamp(1.8rem,4vw,2.6rem);font-weight:800;letter-spacing:-1px;margin-bottom:36px">⚗️ Physique-Chimie</h2>'
+      + '<div class="filter-bar" style="margin-bottom:28px">'
+      + '<button class="filter-btn active" onclick="filterCoursInteg(\'all-pc\',this)">Tout PC</button>'
+      + '<button class="filter-btn" onclick="filterCoursInteg(\'physique\',this)">⚡ Physique</button>'
+      + '<button class="filter-btn" onclick="filterCoursInteg(\'chimie\',this)">🧪 Chimie</button>'
+      + '</div>'
+      + '<div class="cours-grid" id="coursGridPC"></div>'
+      + '</div>';
+  }
+  if (id === 'ia') {
+    return '<div style="padding:90px 24px 60px;max-width:800px;margin:0 auto">'
+      + '<div style="font-size:0.72rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--accent3);margin-bottom:10px">Intelligence Artificielle</div>'
+      + '<h2 style="font-family:Syne,sans-serif;font-size:clamp(1.8rem,4vw,2.6rem);font-weight:800;letter-spacing:-1px;margin-bottom:8px">🧠 Tuteur IA</h2>'
+      + '<p style="color:var(--muted);margin-bottom:32px">Pose n\'importe quelle question en Maths, Physique ou Chimie. Le tuteur répond en temps réel.</p>'
+      + '<div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;overflow:hidden">'
+      + '<div id="ia-messages" style="height:420px;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:14px">'
+      + '<div style="background:rgba(91,248,196,0.08);border:1px solid rgba(91,248,196,0.2);border-radius:14px;padding:16px;max-width:85%">'
+      + '<div style="font-size:0.72rem;font-weight:700;color:var(--accent3);margin-bottom:6px">🧠 TUTEUR IA</div>'
+      + '<div style="font-size:0.9rem;line-height:1.6">Bonjour ! Je suis ton tuteur IA EDUCX. Pose-moi n\'importe quelle question en Maths, Physique ou Chimie et je t\'expliquerai étape par étape. 📚</div>'
+      + '</div></div>'
+      + '<div style="padding:16px;border-top:1px solid var(--border);display:flex;gap:10px">'
+      + '<input id="ia-input" type="text" placeholder="Ex: Explique-moi la dérivation..." style="flex:1;background:var(--surface2);border:1.5px solid var(--border);border-radius:50px;padding:12px 18px;color:var(--text);font-family:DM Sans,sans-serif;font-size:0.9rem;outline:none" onkeydown="if(event.key===\'Enter\')sendIAMessage()">'
+      + '<button onclick="sendIAMessage()" style="background:linear-gradient(135deg,var(--accent3),var(--accent));color:#000;border:none;border-radius:50px;padding:12px 22px;font-family:DM Sans,sans-serif;font-size:0.88rem;font-weight:700;cursor:pointer">Envoyer</button>'
+      + '</div></div>'
+      + '<div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap">'
+      + ['Explique la dérivation','Comment résoudre une équation du 2nd degré ?','C\'est quoi la loi de Kepler ?','Acide ou base, comment savoir ?'].map(function(q){
+          return '<button onclick="document.getElementById(\'ia-input\').value=\''+q+'\';sendIAMessage()" style="padding:8px 16px;border-radius:50px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:DM Sans,sans-serif;font-size:0.78rem;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor=\'var(--accent3)\';this.style.color=\'var(--accent3)\'" onmouseout="this.style.borderColor=\'var(--border)\';this.style.color=\'var(--muted)\'">'+q+'</button>';
+        }).join('')
+      + '</div></div>';
+  }
+  if (id === 'match') {
+    return '<div style="padding:90px 24px 60px;max-width:900px;margin:0 auto;text-align:center">'
+      + '<div style="font-size:0.72rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--accent2);margin-bottom:10px">Multijoueur</div>'
+      + '<h2 style="font-family:Syne,sans-serif;font-size:clamp(1.8rem,4vw,2.6rem);font-weight:800;letter-spacing:-1px;margin-bottom:8px">⚔️ Match en ligne</h2>'
+      + '<p style="color:var(--muted);margin-bottom:48px;max-width:500px;margin-left:auto;margin-right:auto">Défie d\'autres élèves en temps réel sur des questions de Maths, Physique et Chimie. Le meilleur score gagne.</p>'
+      + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px;margin-bottom:40px">'
+      + '<div style="background:var(--surface);border:1px solid rgba(91,110,248,0.3);border-radius:20px;padding:30px;cursor:pointer;transition:all 0.25s" onmouseover="this.style.transform=\'translateY(-4px)\';this.style.boxShadow=\'0 20px 40px rgba(0,0,0,0.3)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\'" onclick="showToast(\'🚧 Bientôt disponible !\',2500)">'
+      + '<div style="font-size:2.5rem;margin-bottom:14px">⚡</div>'
+      + '<div style="font-family:Syne,sans-serif;font-weight:800;font-size:1.1rem;margin-bottom:7px;color:var(--accent)">Duel Express</div>'
+      + '<div style="color:var(--muted);font-size:0.85rem">10 questions · 5 minutes · 1v1 en temps réel</div></div>'
+      + '<div style="background:var(--surface);border:1px solid rgba(248,194,91,0.3);border-radius:20px;padding:30px;cursor:pointer;transition:all 0.25s" onmouseover="this.style.transform=\'translateY(-4px)\';this.style.boxShadow=\'0 20px 40px rgba(0,0,0,0.3)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\'" onclick="showToast(\'🚧 Bientôt disponible !\',2500)">'
+      + '<div style="font-size:2.5rem;margin-bottom:14px">🏆</div>'
+      + '<div style="font-family:Syne,sans-serif;font-weight:800;font-size:1.1rem;margin-bottom:7px;color:var(--gold)">Tournoi</div>'
+      + '<div style="color:var(--muted);font-size:0.85rem">Bracket éliminatoire · 8 joueurs · Prizes</div></div>'
+      + '<div style="background:var(--surface);border:1px solid rgba(91,248,196,0.3);border-radius:20px;padding:30px;cursor:pointer;transition:all 0.25s" onmouseover="this.style.transform=\'translateY(-4px)\';this.style.boxShadow=\'0 20px 40px rgba(0,0,0,0.3)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\'" onclick="showToast(\'🚧 Bientôt disponible !\',2500)">'
+      + '<div style="font-size:2.5rem;margin-bottom:14px">🌍</div>'
+      + '<div style="font-family:Syne,sans-serif;font-weight:800;font-size:1.1rem;margin-bottom:7px;color:var(--accent3)">Classement</div>'
+      + '<div style="color:var(--muted);font-size:0.85rem">Top joueurs France · Elo rating</div></div>'
+      + '</div>'
+      + '<div style="background:rgba(248,91,158,0.06);border:1px solid rgba(248,91,158,0.2);border-radius:16px;padding:20px;display:inline-flex;align-items:center;gap:12px">'
+      + '<span style="font-size:1.5rem">🚧</span>'
+      + '<span style="color:var(--muted);font-size:0.88rem">Le mode Match est en cours de développement. Tu seras notifié dès son lancement !</span>'
+      + '</div></div>';
+  }
+  return '<div style="padding:120px 24px;text-align:center;color:var(--muted)">Page en cours de développement.</div>';
+}
+
+// ════════════════════════════════════════════════════════
+// DRAWER
+// ════════════════════════════════════════════════════════
+function openDrawer() {
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('drOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  // Sync auth state
+  var connected = !!currentUser;
+  document.getElementById('drName').textContent  = connected ? (currentUser.name||'Mon compte') : 'Se connecter';
+  document.getElementById('drEmail').textContent = connected ? (currentUser.email||'') : 'Crée ton compte gratuitement';
+  document.getElementById('drDashBtn').style.display   = connected ? 'flex' : 'none';
+  document.getElementById('drLogoutBtn').style.display = connected ? 'flex' : 'none';
+  document.getElementById('drLoginBtn').style.display  = connected ? 'none' : 'flex';
+  document.getElementById('drRegBtn').style.display    = connected ? 'none' : 'flex';
+}
+
+function closeDrawer() {
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// ════════════════════════════════════════════════════════
+// NAV UPDATE
+// ════════════════════════════════════════════════════════
+function updateNav() {
+  var el = document.getElementById('nav-login');
+  if (!el) return;
+  if (currentUser) {
+    // Montrer le prénom et pointer vers dashboard
+    el.textContent = (currentUser.name||'').split(' ')[0] || 'Mon espace';
+    el.onclick = function() { showPage('dashboard'); };
+    el.style.color = 'var(--accent3)';
+    el.style.fontWeight = '700';
+  } else {
+    el.textContent = 'Connexion';
+    el.onclick = function() { showPage('connexion'); };
+    el.style.color = '';
+    el.style.fontWeight = '';
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// COURS — RENDU
+// ════════════════════════════════════════════════════════
+function getTagHTML(c) {
+  var mL = {maths:'Maths',physique:'Physique',chimie:'Chimie'};
+  var nL = {college:'Collège',lycee:'Lycée'};
+  return '<span class="tag tag-'+c.matiere+'">'+(mL[c.matiere]||c.matiere)+'</span>'
+       + '<span class="tag tag-'+c.niveau+'">'+(nL[c.niveau]||c.niveau)+'</span>';
+}
+
+function renderCours(filter) {
+  filter = filter || currentFilter;
+  var grid = document.getElementById('coursGrid');
+  if (!grid) return;
+  var list = filter === 'all' ? COURS_DATA
+           : COURS_DATA.filter(function(c){ return c.matiere===filter || c.niveau===filter; });
+  grid.innerHTML = list.map(function(c) {
+    var locked = !c.free && (!currentUser || currentUser.plan !== 'premium');
+    return '<div class="cours-card" onclick="openCours('+c.id+')">'
+      +'<div class="cours-thumb" style="background:'+c.color+'">'+c.icon+'</div>'
+      +'<div class="cours-body">'
+      +'<div class="cours-meta">'+getTagHTML(c)+'</div>'
+      +'<div class="cours-title">'+c.title+'</div>'
+      +'<div class="cours-desc">'+c.desc+'</div>'
+      +'<div class="cours-footer"><span class="cours-duration">🕐 '+c.duree+'</span>'
+      +(locked ? '<span style="color:var(--gold);font-size:0.77rem;font-weight:700">🔒 Premium</span>'
+               : '<span style="color:var(--accent3);font-size:0.77rem;font-weight:700">✓ Libre</span>')
+      +'</div></div></div>';
+  }).join('');
+}
+
+function filterCours(val, btn) {
+  currentFilter = val;
+  document.querySelectorAll('.filter-btn').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  renderCours(val);
+}
+
+function filterAndShow(mat) {
+  showPage('cours');
+  currentFilter = mat;
+  document.querySelectorAll('.filter-btn').forEach(function(b){
+    b.classList.toggle('active', b.textContent.toLowerCase().indexOf(mat) !== -1);
+  });
+  renderCours(mat);
+}
+
+// ════════════════════════════════════════════════════════
+// COURS — MODAL
+// ════════════════════════════════════════════════════════
+var CHAP_MAP = {
+  1:'fractions',2:'equations1',3:'pythagore',4:'trigonometrie',5:'probas',
+  6:'second_degre',7:'derivation',8:'suites',9:'integrales',10:'logarithme',
+  11:'mecanique',12:'electricite',13:'optique',14:'ondes',
+  15:'atomes',16:'reactions',17:'solutions',18:'redox',19:'organique'
+};
+
+function openCours(id) {
+  var c = COURS_DATA.find(function(x){ return x.id===id; });
+  if (!c) return;
+
+  // Pas connecté → page connexion
+  if (!currentUser) {
+    showToast('🔒 Connecte-toi pour accéder aux cours !', 3000);
+    showPage('connexion');
+    return;
+  }
+  // Cours premium sans abonnement
+  if (!c.free && currentUser.plan !== 'premium') {
+    showToast('🚀 Ce cours est réservé aux membres Premium !', 3000);
+    showPage('tarifs');
+    return;
+  }
+
+  document.getElementById('modalContent').innerHTML =
+    '<div style="font-size:3rem;margin-bottom:13px">'+c.icon+'</div>'
+    +'<div style="display:flex;gap:8px;margin-bottom:10px">'+getTagHTML(c)+'</div>'
+    +'<h2 style="font-family:Syne,sans-serif;font-size:1.5rem;font-weight:800;margin-bottom:7px">'+c.title+'</h2>'
+    +'<p style="color:var(--muted);font-size:0.86rem;margin-bottom:19px">'+c.desc+' · 🕐 '+c.duree+'</p>'
+    +'<div class="lesson-list">'
+    +c.lecons.map(function(l,i){
+      return '<div class="lesson-item" onclick="startLesson('+id+','+i+')">'
+        +'<div class="lesson-num">'+(i+1)+'</div>'
+        +'<div class="lesson-name">'+l+'</div>'
+        +'<span class="lesson-duration">'+(8+i*3)+' min</span>'
+        +'<span style="color:var(--accent3)">▶</span>'
+        +'</div>';
+    }).join('')
+    +'</div>'
+    +'<div class="modal-action">'
+    +'<button class="btn-primary" onclick="startLesson('+id+',0)">Commencer ▶</button>'
+    +'<button class="btn-ghost" onclick="closeModal()">Fermer</button>'
+    +'</div>';
+
+  document.getElementById('coursModal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('coursModal').classList.remove('open');
+}
+
+document.getElementById('coursModal').addEventListener('click', function(e){
+  if (e.target.id === 'coursModal') closeModal();
+});
+
+function startLesson(cid, lid) {
+  closeModal();
+  showPage('cours-mega');
+}
+
+// ════════════════════════════════════════════════════════
+// DASHBOARD
+// ════════════════════════════════════════════════════════
+function renderDashboard() {
+  if (!currentUser) return;
+  var n = document.getElementById('dashName');
+  var p = document.getElementById('dashPlan');
+  if (n) n.textContent = currentUser.name || 'Élève';
+  if (p) {
+    p.textContent = currentUser.plan === 'premium' ? '🚀 Premium' : '✨ Essai gratuit';
+    p.style.background = currentUser.plan === 'premium' ? 'rgba(248,194,91,0.12)' : 'rgba(91,110,248,0.12)';
+    p.style.color = currentUser.plan === 'premium' ? 'var(--gold)' : 'var(--accent)';
+  }
+  // Cours recommandés
+  var grid = document.getElementById('dashCoursGrid');
+  if (grid) {
+    grid.innerHTML = COURS_DATA.slice(0,6).map(function(c){
+      return '<div class="cours-card" onclick="openCours('+c.id+')">'
+        +'<div class="cours-thumb" style="background:'+c.color+'">'+c.icon+'</div>'
+        +'<div class="cours-body"><div class="cours-meta">'+getTagHTML(c)+'</div>'
+        +'<div class="cours-title">'+c.title+'</div>'
+        +'<div class="cours-desc">'+c.desc+'</div>'
+        +'<div class="cours-footer"><span class="cours-duration">🕐 '+c.duree+'</span>'
+        +'<span style="color:var(--accent3);font-size:0.77rem">▶</span>'
+        +'</div></div></div>';
+    }).join('');
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// TOAST
+// ════════════════════════════════════════════════════════
+function showToast(msg, dur) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, dur||3000);
+}
+
+// ════════════════════════════════════════════════════════
+// STRIPE
+// ════════════════════════════════════════════════════════
+var stripe = Stripe('pk_live_51T9pwL8lA71lYggxQUkfDG1z4UODiPjO4SuWlZJ1YOxdaWBinqmPE0z12u4VmIjSGNYbvITfGzNbRsKbhGUgERKa005E3bMHP3');
+
+async function startStripeCheckout(email) {
+  var btn = document.getElementById('btn-stripe-tarifs');
+  if (btn) { btn.textContent='⏳…'; btn.disabled=true; }
+  try {
+    var res = await fetch('/api/create-checkout', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({email: email||(currentUser&&currentUser.email)||''})
+    });
+    var data = await res.json();
+    if (data.url) window.location.href = data.url;
+    else { showToast('❌ Erreur Stripe', 3000); if(btn){btn.textContent='Payer →';btn.disabled=false;} }
+  } catch(e) {
+    showToast('❌ Erreur réseau', 3000);
+    if(btn){btn.textContent='Payer →';btn.disabled=false;}
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// TUTEUR IA
+// ════════════════════════════════════════════════════════
+var iaLoading = false;
+function sendIAMessage() {
+  if (iaLoading) return;
+  var input = document.getElementById('ia-input');
+  if (!input) return;
+  var question = input.value.trim();
+  if (!question) return;
+  input.value = '';
+
+  var msgs = document.getElementById('ia-messages');
+  if (!msgs) return;
+
+  // Message utilisateur
+  msgs.innerHTML += '<div style="background:rgba(91,110,248,0.1);border:1px solid rgba(91,110,248,0.2);border-radius:14px;padding:14px;max-width:85%;align-self:flex-end;margin-left:auto">'
+    + '<div style="font-size:0.72rem;font-weight:700;color:var(--accent);margin-bottom:5px">TOI</div>'
+    + '<div style="font-size:0.9rem;line-height:1.6">'+question+'</div></div>';
+
+  // Loading
+  var loadId = 'ia-load-'+Date.now();
+  msgs.innerHTML += '<div id="'+loadId+'" style="background:rgba(91,248,196,0.08);border:1px solid rgba(91,248,196,0.2);border-radius:14px;padding:14px;max-width:85%">'
+    + '<div style="font-size:0.72rem;font-weight:700;color:var(--accent3);margin-bottom:6px">🧠 TUTEUR IA</div>'
+    + '<div style="color:var(--muted);font-size:0.9rem">⏳ Réflexion en cours…</div></div>';
+  msgs.scrollTop = msgs.scrollHeight;
+  iaLoading = true;
+
+  fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      system: 'Tu es un tuteur pédagogique expert en Maths, Physique et Chimie pour des élèves français du collège et lycée. Réponds toujours en français, de façon claire, structurée et encourageante. Utilise des étapes numérotées quand tu expliques. Reste concis (max 200 mots). Ne mets pas de markdown complexe, juste du texte simple avec des retours à la ligne.',
+      messages: [{ role: 'user', content: question }]
+    })
+  }).then(function(r){ return r.json(); })
+  .then(function(data) {
+    var reply = data.content && data.content[0] ? data.content[0].text : 'Désolé, je n\'ai pas pu répondre. Réessaie !';
+    var el = document.getElementById(loadId);
+    if (el) el.innerHTML = '<div style="font-size:0.72rem;font-weight:700;color:var(--accent3);margin-bottom:6px">🧠 TUTEUR IA</div>'
+      + '<div style="font-size:0.9rem;line-height:1.7;white-space:pre-wrap">'+reply+'</div>';
+    msgs.scrollTop = msgs.scrollHeight;
+    iaLoading = false;
+  }).catch(function() {
+    var el = document.getElementById(loadId);
+    if (el) el.innerHTML = '<div style="font-size:0.72rem;font-weight:700;color:var(--accent3);margin-bottom:6px">🧠 TUTEUR IA</div>'
+      + '<div style="color:var(--accent2);font-size:0.9rem">❌ Erreur de connexion. Vérifie ta connexion internet et réessaie.</div>';
+    msgs.scrollTop = msgs.scrollHeight;
+    iaLoading = false;
+  });
+}
+
+// ════════════════════════════════════════════════════════
+// FILTER COURS INTÉGRÉS (Maths / PC pages)
+// ════════════════════════════════════════════════════════
+function filterCoursInteg(val, btn) {
+  // Détecter la page active
+  var isMega = document.getElementById('page-cours-mega') && document.getElementById('page-cours-mega').style.display !== 'none';
+  var gridId = isMega ? 'coursGridMega' : 'coursGridPC';
+  var grid = document.getElementById(gridId);
+  if (!grid) return;
+
+  // Mettre à jour boutons actifs
+  var parent = btn.parentElement;
+  parent.querySelectorAll('.filter-btn').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+
+  var list;
+  if (val === 'all-pc') {
+    list = COURS_DATA.filter(function(c){ return c.matiere === 'physique' || c.matiere === 'chimie'; });
+  } else if (val === 'college' || val === 'lycee') {
+    list = COURS_DATA.filter(function(c){
+      return (isMega ? c.matiere === 'maths' : (c.matiere === 'physique' || c.matiere === 'chimie')) && c.niveau === val;
+    });
+  } else {
+    list = COURS_DATA.filter(function(c){ return c.matiere === val; });
+  }
+
+  grid.innerHTML = list.map(function(c) {
+    var locked = !c.free && (!currentUser || currentUser.plan !== 'premium');
+    return '<div class="cours-card" onclick="openCours('+c.id+')">'
+      +'<div class="cours-thumb" style="background:'+c.color+'">'+c.icon+'</div>'
+      +'<div class="cours-body">'
+      +'<div class="cours-meta">'+getTagHTML(c)+'</div>'
+      +'<div class="cours-title">'+c.title+'</div>'
+      +'<div class="cours-desc">'+c.desc+'</div>'
+      +'<div class="cours-footer"><span class="cours-duration">🕐 '+c.duree+'</span>'
+      +(locked ? '<span style="color:var(--gold);font-size:0.77rem;font-weight:700">🔒 Premium</span>'
+               : '<span style="color:var(--accent3);font-size:0.77rem;font-weight:700">✓ Libre</span>')
+      +'</div></div></div>';
+  }).join('') || '<div style="color:var(--muted);padding:40px;text-align:center">Aucun cours pour ce filtre.</div>';
+}
+
+// Initialiser les grilles des pages intégrées après leur injection
+// ════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════
+function initIntegratedGrid(id) {
+  if (id === 'cours-mega') {
+    var grid = document.getElementById('coursGridMega');
+    if (grid) {
+      var list = COURS_DATA.filter(function(c){ return c.matiere === 'maths'; });
+      grid.innerHTML = list.map(function(c) {
+        var locked = !c.free && (!currentUser || currentUser.plan !== 'premium');
+        return '<div class="cours-card" onclick="openCours('+c.id+')">'
+          +'<div class="cours-thumb" style="background:'+c.color+'">'+c.icon+'</div>'
+          +'<div class="cours-body"><div class="cours-meta">'+getTagHTML(c)+'</div>'
+          +'<div class="cours-title">'+c.title+'</div>'
+          +'<div class="cours-desc">'+c.desc+'</div>'
+          +'<div class="cours-footer"><span class="cours-duration">🕐 '+c.duree+'</span>'
+          +(locked?'<span style="color:var(--gold);font-size:0.77rem;font-weight:700">🔒 Premium</span>'
+                  :'<span style="color:var(--accent3);font-size:0.77rem;font-weight:700">✓ Libre</span>')
+          +'</div></div></div>';
+      }).join('');
+    }
+  }
+  if (id === 'cours-pc') {
+    var grid = document.getElementById('coursGridPC');
+    if (grid) {
+      var list = COURS_DATA.filter(function(c){ return c.matiere === 'physique' || c.matiere === 'chimie'; });
+      grid.innerHTML = list.map(function(c) {
+        var locked = !c.free && (!currentUser || currentUser.plan !== 'premium');
+        return '<div class="cours-card" onclick="openCours('+c.id+')">'
+          +'<div class="cours-thumb" style="background:'+c.color+'">'+c.icon+'</div>'
+          +'<div class="cours-body"><div class="cours-meta">'+getTagHTML(c)+'</div>'
+          +'<div class="cours-title">'+c.title+'</div>'
+          +'<div class="cours-desc">'+c.desc+'</div>'
+          +'<div class="cours-footer"><span class="cours-duration">🕐 '+c.duree+'</span>'
+          +(locked?'<span style="color:var(--gold);font-size:0.77rem;font-weight:700">🔒 Premium</span>'
+                  :'<span style="color:var(--accent3);font-size:0.77rem;font-weight:700">✓ Libre</span>')
+          +'</div></div></div>';
+      }).join('');
+    }
+  }
+}
